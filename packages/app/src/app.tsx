@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import { Updater, useImmer } from 'use-immer'
 
 interface Item {
@@ -31,8 +31,26 @@ export function App() {
           stroke="blue"
           strokeWidth={2}
         />
+        {state.items.map((item, key) => (
+          <Fragment key={key}>
+            <circle
+              cx={vw * 0.2 + vw * 0.6 * item.position}
+              cy={vh / 2}
+              r={Math.min(vw, vh) * 0.1}
+              fill="red"
+            />
+          </Fragment>
+        ))}
       </svg>
-      <button>Add</button>
+      <button
+        onClick={() => {
+          setState((draft: State) => {
+            draft.items.unshift({ position: 0, speed: 0.2 })
+          })
+        }}
+      >
+        Add
+      </button>
     </>
   )
 }
@@ -40,7 +58,14 @@ export function App() {
 function useTicker(setState: Updater<State>) {
   useEffect(() => {
     const interval = self.setInterval(() => {
-      console.log('TODO tick')
+      setState((draft: State) => {
+        for (const item of draft.items) {
+          item.position += item.speed
+        }
+        draft.items = draft.items.filter(
+          (item) => item.position <= 1,
+        )
+      })
     }, 1000)
 
     return () => {
