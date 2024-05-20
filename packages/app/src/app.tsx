@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useRef } from 'react'
+import {
+  Fragment,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
 import { Updater, useImmer } from 'use-immer'
 
 interface Item {
@@ -10,6 +17,16 @@ interface State {
   items: Item[]
 }
 
+interface IAppContext {
+  vw: number
+  vh: number
+}
+
+const AppContext = createContext<IAppContext>({
+  vw: 0,
+  vh: 0,
+})
+
 export function App() {
   const vw = window.innerWidth
   const vh = window.innerHeight
@@ -20,8 +37,10 @@ export function App() {
   const [state, setState] = useImmer<State>({ items: [] })
   useTicker(setState)
 
+  const context = useMemo(() => ({ vw, vh }), [vw, vh])
+
   return (
-    <>
+    <AppContext.Provider value={context}>
       <svg width={vw} height={vh} viewBox={viewBox}>
         <line
           x1={vw * 0.2}
@@ -49,7 +68,7 @@ export function App() {
       >
         Add
       </button>
-    </>
+    </AppContext.Provider>
   )
 }
 
@@ -78,9 +97,7 @@ interface RectProps {
 }
 
 function Rect({ x, y }: RectProps) {
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-
+  const { vw, vh } = useContext(AppContext)
   return (
     <rect
       x={x}
