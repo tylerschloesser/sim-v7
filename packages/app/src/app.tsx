@@ -58,10 +58,7 @@ export function App() {
         />
         {state.items.map((item, key) => (
           <Fragment key={key}>
-            <Rect
-              x={vw * 0.2 + vw * 0.6 * item.position}
-              y={vh / 2}
-            />
+            <Rect position={item.position} />
           </Fragment>
         ))}
       </svg>
@@ -109,16 +106,15 @@ function useTicker(
 }
 
 interface RectProps {
-  x: number
-  y: number
+  position: number
 }
 
-function Rect({ x, y }: RectProps) {
+function Rect({ position }: RectProps) {
   const { vw, vh } = useContext(AppContext)
   return (
     <rect
-      x={x}
-      y={y}
+      x={vw * 0.2 + vw * 0.6 * position}
+      y={vh / 2}
       width={Math.min(vw, vh) * 0.1}
       height={Math.min(vw, vh) * 0.1}
       fill="red"
