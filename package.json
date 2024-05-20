@@ -6,10 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "prettier": "@tyle/config/prettier.config.cjs",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "workspaces": [
     "packages/app"
-  ]
+  ],
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@tyle/config": "^1.0.0",
+    "prettier": "^3.2.5"
+  }
 }
