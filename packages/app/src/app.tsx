@@ -56,7 +56,11 @@ export function App() {
   return (
     <AppContext.Provider value={context}>
       <svg width={vw} height={vh} viewBox={viewBox}>
-        <text stroke="white" y="16">
+        <text
+          fill="white"
+          y="16"
+          textRendering="optimizeLegibility"
+        >
           Tick: {tickState.tick}
         </text>
         <line
