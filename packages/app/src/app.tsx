@@ -1,17 +1,20 @@
 export function App() {
-  const width = window.innerWidth
-  const height = window.innerHeight
+  const vw = window.innerWidth
+  const vh = window.innerHeight
 
-  const viewBox = `0 0 ${width} ${height}`
+  const viewBox = `0 0 ${vw} ${vh}`
 
   return (
-    <svg width={width} height={height} viewBox={viewBox}>
-      <circle
-        cx={width / 2}
-        cy={height / 2}
-        r={Math.min(width, height) * 0.2}
-        fill="blue"
-      />
-    </svg>
+    <>
+      <svg width={vw} height={vh} viewBox={viewBox}>
+        <circle
+          cx={vw / 2}
+          cy={vh / 2}
+          r={Math.min(vw, vh) * 0.2}
+          fill="blue"
+        />
+      </svg>
+      <button>Add</button>
+    </>
   )
 }
