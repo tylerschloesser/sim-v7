@@ -121,14 +121,23 @@ interface RectProps {
 function Rect({ position }: RectProps) {
   const { vw, vh } = useContext(AppContext)
 
-  const size = Math.min(vw, vh) * 0.1
+  const { x, y, width, height } = useMemo(() => {
+    const size = Math.min(vw, vh) * 0.1
+    return {
+      x: vw * 0.2 - size / 2,
+      y: vh / 2 - size / 2,
+      width: size,
+      height: size,
+    }
+  }, [vw, vh])
 
   return (
     <rect
-      x={vw * 0.2 + vw * 0.6 * position - size / 2}
-      y={vh / 2 - size / 2}
-      width={size}
-      height={size}
+      transform={`translate(${vw * 0.6 * position} 0)`}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
       fill="red"
     />
   )
