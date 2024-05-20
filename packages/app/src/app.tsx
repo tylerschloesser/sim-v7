@@ -9,9 +9,10 @@ import {
 import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 
+const BELT_SPEED = 0.2
+
 interface Item {
   position: number
-  speed: number
 }
 
 interface State {
@@ -84,7 +85,7 @@ function useTicker(
     const interval = self.setInterval(() => {
       setState((draft: State) => {
         for (const item of draft.items) {
-          item.position += item.speed
+          item.position += BELT_SPEED
         }
         draft.items = draft.items.filter(
           (item) => item.position <= 1,
@@ -94,7 +95,7 @@ function useTicker(
           const next = queue.current.shift()
           invariant(next.name === 'add-item')
 
-          draft.items.unshift({ position: 0, speed: 0.2 })
+          draft.items.unshift({ position: 0 })
         }
       })
     }, 1000)
