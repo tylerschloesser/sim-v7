@@ -33,11 +33,9 @@ export function App() {
         />
         {state.items.map((item, key) => (
           <Fragment key={key}>
-            <circle
-              cx={vw * 0.2 + vw * 0.6 * item.position}
-              cy={vh / 2}
-              r={Math.min(vw, vh) * 0.1}
-              fill="red"
+            <Rect
+              x={vw * 0.2 + vw * 0.6 * item.position}
+              y={vh / 2}
             />
           </Fragment>
         ))}
@@ -72,4 +70,24 @@ function useTicker(setState: Updater<State>) {
       self.clearInterval(interval)
     }
   }, [setState])
+}
+
+interface RectProps {
+  x: number
+  y: number
+}
+
+function Rect({ x, y }: RectProps) {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={Math.min(vw, vh) * 0.1}
+      height={Math.min(vw, vh) * 0.1}
+      fill="red"
+    />
+  )
 }
