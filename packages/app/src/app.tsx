@@ -111,12 +111,15 @@ interface RectProps {
 
 function Rect({ position }: RectProps) {
   const { vw, vh } = useContext(AppContext)
+
+  const size = Math.min(vw, vh) * 0.1
+
   return (
     <rect
-      x={vw * 0.2 + vw * 0.6 * position}
-      y={vh / 2}
-      width={Math.min(vw, vh) * 0.1}
-      height={Math.min(vw, vh) * 0.1}
+      x={vw * 0.2 + vw * 0.6 * position - size / 2}
+      y={vh / 2 - size / 2}
+      width={size}
+      height={size}
       fill="red"
     />
   )
