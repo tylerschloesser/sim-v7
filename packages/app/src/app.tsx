@@ -12,11 +12,13 @@ import { Updater, useImmer } from 'use-immer'
 const BELT_SPEED = 0.2
 
 interface Item {
+  id: string
   position: number
 }
 
 interface State {
-  items: Item[]
+  items: Record<string, Item>
+  nextItemId: number
 }
 
 interface IAppContext {
@@ -41,7 +43,10 @@ export function App() {
   const viewBox = `0 0 ${vw} ${vh}`
 
   const queue = useRef<Action[]>([])
-  const [state, setState] = useImmer<State>({ items: [] })
+  const [state, setState] = useImmer<State>({
+    items: {},
+    nextItemId: 0,
+  })
   useTicker(queue, setState)
 
   const context = useMemo(() => ({ vw, vh }), [vw, vh])
@@ -57,8 +62,8 @@ export function App() {
           stroke="blue"
           strokeWidth={2}
         />
-        {state.items.map((item, key) => (
-          <Fragment key={key}>
+        {Object.values(state.items).map((item) => (
+          <Fragment key={item.id}>
             <Rect position={item.position} />
           </Fragment>
         ))}
@@ -83,20 +88,23 @@ function useTicker(
 ) {
   useEffect(() => {
     const interval = self.setInterval(() => {
-      setState((draft: State) => {
+      setState((draft) => {
         if (queue.current.length > 0) {
           const next = queue.current.shift()
           invariant(next.name === 'add-item')
-
-          draft.items.unshift({ position: 0 })
+          const item: Item = {
+            id: `${draft.nextItemId++}`,
+            position: 0,
+          }
+          draft.items[item.id] = item
         }
 
-        for (const item of draft.items) {
+        for (const item of Object.values(draft.items)) {
           item.position += BELT_SPEED
+          if (item.position > 1) {
+            delete draft.items[item.id]
+          }
         }
-        draft.items = draft.items.filter(
-          (item) => item.position <= 1,
-        )
       })
     }, 1000)
 
