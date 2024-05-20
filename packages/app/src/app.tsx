@@ -1,4 +1,5 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import { Updater, useImmer } from 'use-immer'
 
 interface Item {
   position: number
@@ -15,19 +16,35 @@ export function App() {
 
   const viewBox = `0 0 ${vw} ${vh}`
 
-  const state = useRef<State>({ items: [] })
+  const queue = useRef<'add-item'[]>([])
+  const [state, setState] = useImmer<State>({ items: [] })
+  useTicker(setState)
 
   return (
     <>
       <svg width={vw} height={vh} viewBox={viewBox}>
-        <circle
-          cx={vw / 2}
-          cy={vh / 2}
-          r={Math.min(vw, vh) * 0.2}
-          fill="blue"
+        <line
+          x1={vw * 0.2}
+          y1={vh / 2}
+          x2={vw * 0.8}
+          y2={vh / 2}
+          stroke="blue"
+          strokeWidth={2}
         />
       </svg>
       <button>Add</button>
     </>
   )
+}
+
+function useTicker(setState: Updater<State>) {
+  useEffect(() => {
+    const interval = self.setInterval(() => {
+      console.log('TODO tick')
+    }, 1000)
+
+    return () => {
+      self.clearInterval(interval)
+    }
+  }, [setState])
 }
