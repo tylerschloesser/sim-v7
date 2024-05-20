@@ -1,12 +1,16 @@
 {
   "name": "@sim-v7/app",
   "version": "1.0.0",
+  "source": "src/index.html",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "parcel -p 8080"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "parcel": "^2.12.0"
+  }
 }
