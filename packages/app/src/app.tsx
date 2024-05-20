@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
 } from 'react'
+import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 
 interface Item {
@@ -27,15 +28,20 @@ const AppContext = createContext<IAppContext>({
   vh: 0,
 })
 
+interface Action {
+  time: number
+  name: 'add-item'
+}
+
 export function App() {
   const vw = window.innerWidth
   const vh = window.innerHeight
 
   const viewBox = `0 0 ${vw} ${vh}`
 
-  const queue = useRef<'add-item'[]>([])
+  const queue = useRef<Action[]>([])
   const [state, setState] = useImmer<State>({ items: [] })
-  useTicker(setState)
+  useTicker(queue, setState)
 
   const context = useMemo(() => ({ vw, vh }), [vw, vh])
 
@@ -61,8 +67,9 @@ export function App() {
       </svg>
       <button
         onClick={() => {
-          setState((draft: State) => {
-            draft.items.unshift({ position: 0, speed: 0.2 })
+          queue.current.push({
+            time: performance.now(),
+            name: 'add-item',
           })
         }}
       >
@@ -72,7 +79,10 @@ export function App() {
   )
 }
 
-function useTicker(setState: Updater<State>) {
+function useTicker(
+  queue: React.MutableRefObject<Action[]>,
+  setState: Updater<State>,
+) {
   useEffect(() => {
     const interval = self.setInterval(() => {
       setState((draft: State) => {
@@ -82,6 +92,13 @@ function useTicker(setState: Updater<State>) {
         draft.items = draft.items.filter(
           (item) => item.position <= 1,
         )
+
+        while (queue.current.length > 0) {
+          const next = queue.current.shift()
+          invariant(next)
+
+          draft.items.unshift({ position: 0, speed: 0.2 })
+        }
       })
     }, 1000)
 
