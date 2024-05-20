@@ -84,19 +84,19 @@ function useTicker(
   useEffect(() => {
     const interval = self.setInterval(() => {
       setState((draft: State) => {
+        if (queue.current.length > 0) {
+          const next = queue.current.shift()
+          invariant(next.name === 'add-item')
+
+          draft.items.unshift({ position: 0 })
+        }
+
         for (const item of draft.items) {
           item.position += BELT_SPEED
         }
         draft.items = draft.items.filter(
           (item) => item.position <= 1,
         )
-
-        while (queue.current.length > 0) {
-          const next = queue.current.shift()
-          invariant(next.name === 'add-item')
-
-          draft.items.unshift({ position: 0 })
-        }
       })
     }, 1000)
 
