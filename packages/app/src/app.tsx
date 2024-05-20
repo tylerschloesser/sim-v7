@@ -57,7 +57,7 @@ export function App() {
     <AppContext.Provider value={context}>
       <svg width={vw} height={vh} viewBox={viewBox}>
         <text
-          fill="white"
+          fill="hsla(0, 0%, 50%, .5)"
           y="16"
           textRendering="optimizeLegibility"
         >
