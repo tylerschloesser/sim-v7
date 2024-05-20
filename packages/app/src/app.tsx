@@ -56,6 +56,9 @@ export function App() {
   return (
     <AppContext.Provider value={context}>
       <svg width={vw} height={vh} viewBox={viewBox}>
+        <text stroke="white" y="16">
+          Tick: {tickState.tick}
+        </text>
         <line
           x1={vw * 0.2}
           y1={vh / 2}
