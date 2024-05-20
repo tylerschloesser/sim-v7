@@ -1,3 +1,6 @@
 export function App() {
-  return <h1>Hello!</h1>
+  const width = window.innerWidth
+  const height = window.innerHeight
+
+  return <svg width={width} height={height} />
 }
