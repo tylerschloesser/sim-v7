@@ -17,6 +17,7 @@ interface TickItem {
 }
 
 interface TickState {
+  tick: number
   items: Record<string, TickItem>
   nextItemId: number
 }
@@ -44,6 +45,7 @@ export function App() {
 
   const queue = useRef<Action[]>([])
   const [tickState, setTickState] = useImmer<TickState>({
+    tick: 0,
     items: {},
     nextItemId: 0,
   })
@@ -89,6 +91,8 @@ function useTicker(
   useEffect(() => {
     const interval = self.setInterval(() => {
       setTickState((draft) => {
+        draft.tick++
+
         if (queue.current.length > 0) {
           const next = queue.current.shift()
           invariant(next.name === 'add-item')
