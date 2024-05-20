@@ -1,8 +1,21 @@
+import { useRef } from 'react'
+
+interface Item {
+  position: number
+  speed: number
+}
+
+interface State {
+  items: Item[]
+}
+
 export function App() {
   const vw = window.innerWidth
   const vh = window.innerHeight
 
   const viewBox = `0 0 ${vw} ${vh}`
+
+  const state = useRef<State>({ items: [] })
 
   return (
     <>
