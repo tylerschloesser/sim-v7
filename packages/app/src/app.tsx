@@ -11,13 +11,13 @@ import { Updater, useImmer } from 'use-immer'
 
 const BELT_SPEED = 0.2
 
-interface Item {
+interface TickItem {
   id: string
   position: number
 }
 
-interface State {
-  items: Record<string, Item>
+interface TickState {
+  items: Record<string, TickItem>
   nextItemId: number
 }
 
@@ -43,11 +43,11 @@ export function App() {
   const viewBox = `0 0 ${vw} ${vh}`
 
   const queue = useRef<Action[]>([])
-  const [state, setState] = useImmer<State>({
+  const [tickState, setTickState] = useImmer<TickState>({
     items: {},
     nextItemId: 0,
   })
-  useTicker(queue, setState)
+  useTicker(queue, setTickState)
 
   const context = useMemo(() => ({ vw, vh }), [vw, vh])
 
@@ -62,7 +62,7 @@ export function App() {
           stroke="blue"
           strokeWidth={2}
         />
-        {Object.values(state.items).map((item) => (
+        {Object.values(tickState.items).map((item) => (
           <Fragment key={item.id}>
             <Rect position={item.position} />
           </Fragment>
@@ -84,15 +84,15 @@ export function App() {
 
 function useTicker(
   queue: React.MutableRefObject<Action[]>,
-  setState: Updater<State>,
+  setTickState: Updater<TickState>,
 ) {
   useEffect(() => {
     const interval = self.setInterval(() => {
-      setState((draft) => {
+      setTickState((draft) => {
         if (queue.current.length > 0) {
           const next = queue.current.shift()
           invariant(next.name === 'add-item')
-          const item: Item = {
+          const item: TickItem = {
             id: `${draft.nextItemId++}`,
             position: 0,
           }
@@ -111,7 +111,7 @@ function useTicker(
     return () => {
       self.clearInterval(interval)
     }
-  }, [setState])
+  }, [setTickState])
 }
 
 interface RectProps {
