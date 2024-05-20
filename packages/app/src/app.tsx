@@ -92,7 +92,7 @@ function useTicker(
 
         while (queue.current.length > 0) {
           const next = queue.current.shift()
-          invariant(next)
+          invariant(next.name === 'add-item')
 
           draft.items.unshift({ position: 0, speed: 0.2 })
         }
