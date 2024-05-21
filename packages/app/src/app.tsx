@@ -1,6 +1,5 @@
 import {
   Fragment,
-  createContext,
   useContext,
   useEffect,
   useMemo,
@@ -8,6 +7,7 @@ import {
 } from 'react'
 import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
+import { AppContext } from './app-context'
 
 const BELT_SPEED = 0.2
 
@@ -32,26 +32,14 @@ interface RenderState {
   items: Record<string, RenderItem[]>
 }
 
-interface IAppContext {
-  vw: number
-  vh: number
-}
-
-const AppContext = createContext<IAppContext>({
-  vw: 0,
-  vh: 0,
-})
-
 interface Action {
   time: number
   name: 'add-item'
 }
 
 export function App() {
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-
-  const viewBox = `0 0 ${vw} ${vh}`
+  const { vw, vh } = useContext(AppContext)
+  const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
   const queue = useRef<Action[]>([])
   const [tickState, setTickState] = useImmer<TickState>({
@@ -62,12 +50,10 @@ export function App() {
 
   useTicker(queue, setTickState)
 
-  const context = useMemo(() => ({ vw, vh }), [vw, vh])
-
   useRenderLoop()
 
   return (
-    <AppContext.Provider value={context}>
+    <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
         <text
           fill="hsla(0, 0%, 50%, .5)"
@@ -100,7 +86,7 @@ export function App() {
       >
         Add
       </button>
-    </AppContext.Provider>
+    </Fragment>
   )
 }
 
