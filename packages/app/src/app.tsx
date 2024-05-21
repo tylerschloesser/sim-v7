@@ -22,6 +22,16 @@ interface TickState {
   nextItemId: number
 }
 
+interface RenderItem {
+  id: string
+  tick: number
+  position: number
+}
+
+interface RenderState {
+  items: Record<string, RenderItem[]>
+}
+
 interface IAppContext {
   vw: number
   vh: number
@@ -49,9 +59,12 @@ export function App() {
     items: {},
     nextItemId: 0,
   })
+
   useTicker(queue, setTickState)
 
   const context = useMemo(() => ({ vw, vh }), [vw, vh])
+
+  useRenderLoop()
 
   return (
     <AppContext.Provider value={context}>
@@ -152,4 +165,18 @@ function Rect({ position }: RectProps) {
       fill="red"
     />
   )
+}
+
+function useRenderLoop() {
+  useEffect(() => {
+    let handle: number
+    const callback: FrameRequestCallback = () => {
+      handle = self.requestAnimationFrame(callback)
+    }
+    handle = self.requestAnimationFrame(callback)
+
+    return () => {
+      self.cancelAnimationFrame(handle)
+    }
+  }, [])
 }
