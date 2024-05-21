@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -24,12 +25,12 @@ interface TickState {
 
 interface RenderItem {
   id: string
-  tick: number
   position: number
 }
 
 interface RenderState {
-  items: Record<string, RenderItem[]>
+  tick: number
+  items: Record<string, RenderItem>
 }
 
 interface Action {
@@ -42,15 +43,29 @@ export function App() {
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
   const queue = useRef<Action[]>([])
-  const [tickState, setTickState] = useImmer<TickState>({
+
+  const tickState = useRef<TickState>({
     tick: 0,
     items: {},
     nextItemId: 0,
   })
 
-  useTicker(queue, setTickState)
+  const [renderState, setRenderState] =
+    useImmer<RenderState>({
+      tick: 0,
+      items: {},
+    })
 
-  useRenderLoop()
+  useTicker(queue, tickState)
+
+  useRenderLoop(tickState, setRenderState)
+
+  const addItem = useCallback(() => {
+    queue.current.push({
+      time: performance.now(),
+      name: 'add-item',
+    })
+  }, [])
 
   return (
     <Fragment>
@@ -60,7 +75,7 @@ export function App() {
           y="16"
           textRendering="optimizeLegibility"
         >
-          Tick: {tickState.tick}
+          Tick: {renderState.tick}
         </text>
         <line
           x1={vw * 0.2}
@@ -70,58 +85,49 @@ export function App() {
           stroke="blue"
           strokeWidth={2}
         />
-        {Object.values(tickState.items).map((item) => (
+        {Object.values(renderState.items).map((item) => (
           <Fragment key={item.id}>
             <Rect position={item.position} />
           </Fragment>
         ))}
       </svg>
-      <button
-        onClick={() => {
-          queue.current.push({
-            time: performance.now(),
-            name: 'add-item',
-          })
-        }}
-      >
-        Add
-      </button>
+      <button onClick={addItem}>Add</button>
     </Fragment>
   )
 }
 
 function useTicker(
   queue: React.MutableRefObject<Action[]>,
-  setTickState: Updater<TickState>,
+  tickState: React.MutableRefObject<TickState>,
 ) {
   useEffect(() => {
     const interval = self.setInterval(() => {
-      setTickState((draft) => {
-        draft.tick++
+      tickState.current.tick++
 
-        if (queue.current.length > 0) {
-          const next = queue.current.shift()
-          invariant(next.name === 'add-item')
-          const item: TickItem = {
-            id: `${draft.nextItemId++}`,
-            position: 0,
-          }
-          draft.items[item.id] = item
+      if (queue.current.length > 0) {
+        const next = queue.current.shift()
+        invariant(next.name === 'add-item')
+        const item: TickItem = {
+          id: `${tickState.current.nextItemId++}`,
+          position: 0,
         }
+        tickState.current.items[item.id] = item
+      }
 
-        for (const item of Object.values(draft.items)) {
-          item.position += BELT_SPEED
-          if (item.position > 1) {
-            delete draft.items[item.id]
-          }
+      for (const item of Object.values(
+        tickState.current.items,
+      )) {
+        item.position += BELT_SPEED
+        if (item.position > 1) {
+          delete tickState.current.items[item.id]
         }
-      })
+      }
     }, 1000)
 
     return () => {
       self.clearInterval(interval)
     }
-  }, [setTickState])
+  }, [])
 }
 
 interface RectProps {
@@ -153,11 +159,42 @@ function Rect({ position }: RectProps) {
   )
 }
 
-function useRenderLoop() {
+function useRenderLoop(
+  tickState: React.MutableRefObject<TickState>,
+  setRenderState: Updater<RenderState>,
+) {
   useEffect(() => {
     let handle: number
     const callback: FrameRequestCallback = () => {
       handle = self.requestAnimationFrame(callback)
+
+      setRenderState((renderState) => {
+        renderState.tick = tickState.current.tick
+
+        const itemIds = new Set<string>([
+          ...Object.keys(renderState.items),
+          ...Object.keys(tickState.current.items),
+        ])
+
+        for (const itemId of itemIds) {
+          const tickItem = tickState.current.items[itemId]
+          if (!tickItem) {
+            invariant(renderState.items[itemId])
+            delete renderState.items[itemId]
+            continue
+          }
+
+          const renderItem = renderState.items[itemId]
+          if (!renderItem) {
+            renderState.items[itemId] = {
+              id: itemId,
+              position: tickItem.position,
+            }
+          } else {
+            renderItem.position = tickItem.position
+          }
+        }
+      })
     }
     handle = self.requestAnimationFrame(callback)
 
