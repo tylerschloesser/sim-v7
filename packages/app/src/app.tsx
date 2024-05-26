@@ -29,7 +29,6 @@ interface Entity {
 interface State {
   tick: number
   entities: Record<string, Entity>
-  nextEntityId: number
 }
 
 const Camera = z.strictObject({
@@ -68,10 +67,9 @@ function initialState(): State {
   const state: State = {
     tick: 0,
     entities: {},
-    nextEntityId: 0,
   }
   const entity: Entity = {
-    id: `${state.nextEntityId++}`,
+    id: '0.0',
     position: { x: 0, y: 0 },
   }
   state.entities[entity.id] = entity
@@ -221,7 +219,18 @@ export function App() {
           viewportRef.current,
           cameraRef.current,
         )
-        console.log('TODO', world)
+        setState((draft) => {
+          const id = `${world.x}.${world.y}`
+          if (draft.entities[id]) {
+            delete draft.entities[id]
+            return
+          }
+          const entity: Entity = {
+            id,
+            position: { x: world.x, y: world.y },
+          }
+          draft.entities[id] = entity
+        })
       },
       { signal },
     )
