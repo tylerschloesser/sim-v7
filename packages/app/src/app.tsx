@@ -12,37 +12,15 @@ import { AppContext } from './app-context'
 
 const BELT_SPEED = 0.2
 
-interface TickItem {
+interface Item {
   id: string
   position: number
 }
 
-interface TickState {
+interface State {
   tick: number
-  items: Record<string, TickItem>
+  items: Record<string, Item>
   nextItemId: number
-}
-
-interface Motion {
-  time: number
-  duration: number
-
-  source: number
-  target: number
-}
-
-interface MotionState {
-  items: Record<string, Motion[]>
-}
-
-interface RenderItem {
-  id: string
-  position: number
-}
-
-interface RenderState {
-  tick: number
-  items: Record<string, RenderItem>
 }
 
 interface Action {
@@ -56,25 +34,13 @@ export function App() {
 
   const queue = useRef<Action[]>([])
 
-  const tickState = useRef<TickState>({
+  const [tickState, setTickState] = useImmer<State>({
     tick: 0,
     items: {},
     nextItemId: 0,
   })
 
-  const motionState = useRef<MotionState>({
-    items: {},
-  })
-
-  const [renderState, setRenderState] =
-    useImmer<RenderState>({
-      tick: 0,
-      items: {},
-    })
-
-  useTicker(queue, motionState, tickState)
-
-  useRenderLoop(tickState, motionState, setRenderState)
+  useTicker(queue, setTickState)
 
   const addItem = useCallback(() => {
     queue.current.push({
@@ -87,7 +53,7 @@ export function App() {
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
         <text fill="hsla(0, 0%, 50%, .5)" y="16">
-          Tick: {renderState.tick}
+          Tick: {tickState.tick}
         </text>
         <line
           x1={vw * 0.2}
@@ -97,7 +63,7 @@ export function App() {
           stroke="blue"
           strokeWidth={2}
         />
-        {Object.values(renderState.items).map((item) => (
+        {Object.values(tickState.items).map((item) => (
           <Fragment key={item.id}>
             <Rect position={item.position} />
           </Fragment>
@@ -110,40 +76,40 @@ export function App() {
 
 function useTicker(
   queue: React.MutableRefObject<Action[]>,
-  motionState: React.MutableRefObject<MotionState>,
-  tickState: React.MutableRefObject<TickState>,
+  setTickState: Updater<State>,
 ) {
   useEffect(() => {
-    const interval = self.setInterval(() => {
-      if (queue.current.length > 0) {
-        const next = queue.current.shift()
-        invariant(next.name === 'add-item')
-        const item: TickItem = {
-          id: `${tickState.current.nextItemId++}`,
-          position: 0,
+    let handler: number
+    function callback() {
+      setTickState((draft) => {
+        if (queue.current.length > 0) {
+          for (const action of queue.current) {
+            invariant(action.name === 'add-item')
+            const item: Item = {
+              id: `${draft.nextItemId++}`,
+              position: 0,
+            }
+            draft.items[item.id] = item
+          }
+          queue.current = []
         }
-        tickState.current.items[item.id] = item
-        motionState.current.items[item.id] = []
-      }
 
-      for (const item of Object.values(
-        tickState.current.items,
-      )) {
-        motionState.current.items[item.id].push({
-          time: tickState.current.tick,
-          duration: 1,
-          source: item.position,
-          target: item.position + BELT_SPEED,
-        })
+        for (const item of Object.values(draft.items)) {
+          item.position += BELT_SPEED * (1 / 60)
 
-        item.position += BELT_SPEED
-      }
+          if (item.position > 1) {
+            delete draft.items[item.id]
+          }
+        }
 
-      tickState.current.tick++
-    }, 1000)
+        draft.tick++
+      })
 
+      handler = self.requestAnimationFrame(callback)
+    }
+    handler = self.requestAnimationFrame(callback)
     return () => {
-      self.clearInterval(interval)
+      self.cancelAnimationFrame(handler)
     }
   }, [])
 }
@@ -175,76 +141,4 @@ function Rect({ position }: RectProps) {
       fill="red"
     />
   )
-}
-
-function useRenderLoop(
-  tickState: React.MutableRefObject<TickState>,
-  motionState: React.MutableRefObject<MotionState>,
-  setRenderState: Updater<RenderState>,
-) {
-  useEffect(() => {
-    let handle: number
-
-    let lastTime = self.performance.now()
-
-    const callback: FrameRequestCallback = () => {
-      handle = self.requestAnimationFrame(callback)
-
-      const now = self.performance.now()
-      const elapsed = now - lastTime
-      lastTime = now
-
-      setRenderState((renderState) => {
-        renderState.tick = Math.min(
-          renderState.tick + elapsed / 1000,
-          tickState.current.tick - 1,
-        )
-
-        const itemIds = new Set<string>([
-          ...Object.keys(renderState.items),
-          ...Object.keys(tickState.current.items),
-        ])
-
-        for (const itemId of itemIds) {
-          let motions = motionState.current.items[itemId]
-          invariant(motions)
-
-          motionState.current.items[itemId] = motions =
-            motions.filter(
-              (value) =>
-                value.time + value.duration >
-                renderState.tick,
-            )
-
-          let motion: Motion | null = motions.at(0)
-          if (motion.time >= renderState.tick) {
-            motion = null
-          }
-
-          const tickItem = tickState.current.items[itemId]
-          const position = motion
-            ? motion.source +
-              (motion.target - motion.source) *
-                ((renderState.tick - motion.time) /
-                  motion.duration)
-            : tickItem.position
-
-          const renderItem = renderState.items[itemId]
-          if (!renderItem) {
-            renderState.items[itemId] = {
-              id: itemId,
-              position,
-            }
-          } else {
-            renderItem.position = position
-          }
-        }
-      })
-    }
-    handle = self.requestAnimationFrame(callback)
-
-    return () => {
-      self.cancelAnimationFrame(handle)
-    }
-  }, [])
 }
