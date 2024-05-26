@@ -57,6 +57,8 @@ export function App() {
     position: { x: 0, y: 0 },
   })
 
+  const [pointer, setPointer] = useImmer<Vec2 | null>(null)
+
   const input = useRef<{
     north: boolean
     south: boolean
@@ -137,17 +139,44 @@ export function App() {
       }
     }
 
-    window.addEventListener(
+    document.addEventListener(
       'keydown',
       (ev) => {
         handleKey(ev.key, 'keydown')
       },
       { signal },
     )
-    window.addEventListener(
+    document.addEventListener(
       'keyup',
       (ev) => {
         handleKey(ev.key, 'keyup')
+      },
+      { signal },
+    )
+  }, [signal])
+
+  useEffect(() => {
+    document.addEventListener(
+      'pointerenter',
+      (ev) => {
+        setPointer(new Vec2(ev.clientX, ev.clientY))
+      },
+      { signal },
+    )
+
+    document.addEventListener(
+      'pointermove',
+      (ev) => {
+        setPointer(new Vec2(ev.clientX, ev.clientY))
+      },
+      { signal },
+    )
+
+    document.addEventListener(
+      'pointerleave',
+      () => {
+        console.log('leave')
+        setPointer(null)
       },
       { signal },
     )
@@ -178,6 +207,14 @@ export function App() {
             fill="red"
           />
         </g>
+        {pointer && (
+          <circle
+            cx={pointer.x}
+            cy={pointer.y}
+            fill="green"
+            r="10"
+          />
+        )}
       </svg>
       <button onClick={addItem}>Add</button>
     </Fragment>
