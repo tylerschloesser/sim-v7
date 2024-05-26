@@ -10,6 +10,11 @@ import * as z from 'zod'
 import { AppContext } from './app-context'
 import { Vec2 } from './vec2'
 
+interface Viewport {
+  vw: number
+  vh: number
+}
+
 const ZVec2 = z.strictObject({
   x: z.number(),
   y: z.number(),
@@ -32,11 +37,31 @@ const Camera = z.strictObject({
 })
 type Camera = z.infer<typeof Camera>
 
-function useCamera(): [Camera, Updater<Camera>] {
+function useCamera(): [
+  Camera,
+  Updater<Camera>,
+  React.MutableRefObject<Camera>,
+] {
   const [camera, setCamera] = useImmer<Camera>({
     position: { x: 0, y: 0 },
   })
-  return [camera, setCamera]
+  const cameraRef = useRef(camera)
+  useEffect(() => {
+    cameraRef.current = camera
+  }, [camera])
+  return [camera, setCamera, cameraRef]
+}
+
+function useViewportRef() {
+  const context = useContext(AppContext)
+  const viewportRef = useRef({
+    vw: context.vw,
+    vh: context.vh,
+  })
+  useEffect(() => {
+    viewportRef.current = { vw: context.vw, vh: context.vh }
+  }, [context])
+  return viewportRef
 }
 
 export function App() {
@@ -44,13 +69,15 @@ export function App() {
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
+  const viewportRef = useViewportRef()
+
   const [state, setState] = useImmer<State>({
     tick: 0,
     entities: {},
     nextEntityId: 0,
   })
 
-  const [camera, setCamera] = useCamera()
+  const [camera, setCamera, cameraRef] = useCamera()
 
   const [pointer, setPointer] = useImmer<Vec2 | null>(null)
 
@@ -179,7 +206,12 @@ export function App() {
     document.addEventListener(
       'pointerup',
       (ev) => {
-        console.log('TODO')
+        const world = pointerToWorld(
+          new Vec2(ev.clientX, ev.clientY),
+          viewportRef.current,
+          cameraRef.current,
+        )
+        console.log('TODO', world)
       },
       { signal },
     )
@@ -219,18 +251,16 @@ interface RenderPointerProps {
 
 function pointerToWorld(
   pointer: Vec2,
-  context: AppContext,
+  viewport: Viewport,
   camera: Camera,
 ): Vec2 {
-  const { vw, vh } = context
-  const x =
-    Math.floor(
-      (pointer.x - vw / 2 + camera.position.x) / 100,
-    ) * 100
-  const y =
-    Math.floor(
-      (pointer.y - vh / 2 + camera.position.y) / 100,
-    ) * 100
+  const { vw, vh } = viewport
+  const x = Math.floor(
+    (pointer.x - vw / 2 + camera.position.x) / 100,
+  )
+  const y = Math.floor(
+    (pointer.y - vh / 2 + camera.position.y) / 100,
+  )
   return new Vec2(x, y)
 }
 
@@ -239,7 +269,11 @@ function RenderPointer({
   camera,
 }: RenderPointerProps) {
   const context = useContext(AppContext)
-  const { x, y } = pointerToWorld(pointer, context, camera)
+  const { x, y } = pointerToWorld(
+    pointer,
+    context,
+    camera,
+  ).mul(100)
   return (
     <rect
       x={x}
