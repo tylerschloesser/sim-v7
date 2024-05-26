@@ -290,21 +290,7 @@ export function App() {
         >
           {Object.values(state.entities).map((entity) => (
             <Fragment key={entity.id}>
-              <g
-                transform={`translate(${entity.position.x * TILE_SIZE} ${entity.position.y * TILE_SIZE})`}
-              >
-                <rect
-                  width={TILE_SIZE}
-                  height={TILE_SIZE}
-                  fill={entity.color}
-                />
-                <circle
-                  cx={TILE_SIZE}
-                  cy={TILE_SIZE / 2}
-                  r={TILE_SIZE * 0.1}
-                  fill="green"
-                />
-              </g>
+              <RenderEntity entity={entity} />
             </Fragment>
           ))}
           {pointer && (
@@ -409,4 +395,27 @@ function useTicker(setState: Updater<State>) {
       self.cancelAnimationFrame(handler)
     }
   }, [])
+}
+
+interface RenderEntityProps {
+  entity: Entity
+}
+function RenderEntity({ entity }: RenderEntityProps) {
+  return (
+    <g
+      transform={`translate(${entity.position.x * TILE_SIZE} ${entity.position.y * TILE_SIZE})`}
+    >
+      <rect
+        width={TILE_SIZE}
+        height={TILE_SIZE}
+        fill={entity.color}
+      />
+      <circle
+        cx={TILE_SIZE}
+        cy={TILE_SIZE / 2}
+        r={TILE_SIZE * 0.1}
+        fill="green"
+      />
+    </g>
+  )
 }
