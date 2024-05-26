@@ -77,6 +77,12 @@ function useViewportRef() {
   return viewportRef
 }
 
+function getPaths(
+  entities: State['entities'],
+): State['paths'] {
+  return {}
+}
+
 function addEntity(
   draft: State,
   entity: Omit<Entity, 'id'>,
@@ -96,6 +102,8 @@ function addEntity(
   } else {
     draft.entities[id] = { id, ...entity }
   }
+
+  draft.paths = getPaths(draft.entities)
 }
 
 function initialState(): State {
