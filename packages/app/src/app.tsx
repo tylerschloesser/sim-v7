@@ -4,9 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from 'react'
 import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
+import * as z from 'zod'
 import { AppContext } from './app-context'
 
 const BELT_SPEED = 0.2
@@ -28,6 +30,17 @@ interface Action {
   name: 'add-item'
 }
 
+const ZVec2 = z.strictObject({
+  x: z.number(),
+  y: z.number(),
+})
+type ZVec2 = z.infer<typeof ZVec2>
+
+const Camera = z.strictObject({
+  position: ZVec2,
+})
+type Camera = z.infer<typeof Camera>
+
 export function App() {
   const { vw, vh } = useContext(AppContext)
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
@@ -38,6 +51,75 @@ export function App() {
     queue: [],
     nextItemId: 0,
   })
+
+  const [camera, setCamera] = useImmer<Camera>({
+    position: { x: 0, y: 0 },
+  })
+
+  const input = useRef<{
+    north: boolean
+    south: boolean
+    east: boolean
+    west: boolean
+  }>({
+    north: false,
+    south: false,
+    east: false,
+    west: false,
+  })
+
+  const controller = useMemo(
+    () => new AbortController(),
+    [],
+  )
+  const { signal } = controller
+  useEffect(() => {
+    return () => {
+      controller.abort()
+    }
+  }, [])
+
+  useEffect(() => {
+    function handleKey(
+      key: string,
+      eventType: 'keydown' | 'keyup',
+    ) {
+      const value = eventType === 'keydown'
+      switch (key) {
+        case 'w': {
+          input.current.north = value
+          break
+        }
+        case 's': {
+          input.current.south = value
+          break
+        }
+        case 'a': {
+          input.current.west = value
+          break
+        }
+        case 'd': {
+          input.current.west = value
+          break
+        }
+      }
+    }
+
+    window.addEventListener(
+      'keydown',
+      (ev) => {
+        handleKey(ev.key, 'keydown')
+      },
+      { signal },
+    )
+    window.addEventListener(
+      'keyup',
+      (ev) => {
+        handleKey(ev.key, 'keyup')
+      },
+      { signal },
+    )
+  }, [signal])
 
   useTicker(setState)
 
@@ -53,22 +135,15 @@ export function App() {
   return (
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
-        <text fill="hsla(0, 0%, 50%, .5)" y="16">
-          Tick: {state.tick}
-        </text>
-        <line
-          x1={vw * 0.2}
-          y1={vh / 2}
-          x2={vw * 0.8}
-          y2={vh / 2}
-          stroke="blue"
-          strokeWidth={2}
-        />
-        {Object.values(state.items).map((item) => (
-          <Fragment key={item.id}>
-            <Rect position={item.position} />
-          </Fragment>
-        ))}
+        <g transform={`translate(${vw / 2} ${vh / 2})`}>
+          <rect
+            x={0}
+            y={0}
+            width={100}
+            height={100}
+            fill="red"
+          />
+        </g>
       </svg>
       <button onClick={addItem}>Add</button>
     </Fragment>
@@ -111,33 +186,4 @@ function useTicker(setState: Updater<State>) {
       self.cancelAnimationFrame(handler)
     }
   }, [])
-}
-
-interface RectProps {
-  position: number
-}
-
-function Rect({ position }: RectProps) {
-  const { vw, vh } = useContext(AppContext)
-
-  const { x, y, width, height } = useMemo(() => {
-    const size = Math.min(vw, vh) * 0.1
-    return {
-      x: vw * 0.2 - size / 2,
-      y: vh / 2 - size / 2,
-      width: size,
-      height: size,
-    }
-  }, [vw, vh])
-
-  return (
-    <rect
-      transform={`translate(${vw * 0.6 * position} 0)`}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      fill="red"
-    />
-  )
 }
