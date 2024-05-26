@@ -10,6 +10,8 @@ import * as z from 'zod'
 import { AppContext } from './app-context'
 import { Vec2 } from './vec2'
 
+const TILE_SIZE = 50
+
 interface Viewport {
   vw: number
   vh: number
@@ -247,10 +249,10 @@ export function App() {
           {Object.values(state.entities).map((entity) => (
             <Fragment key={entity.id}>
               <rect
-                x={entity.position.x * 100}
-                y={entity.position.y * 100}
-                width={100}
-                height={100}
+                x={entity.position.x * TILE_SIZE}
+                y={entity.position.y * TILE_SIZE}
+                width={TILE_SIZE}
+                height={TILE_SIZE}
                 fill="red"
               />
             </Fragment>
@@ -279,10 +281,10 @@ function pointerToWorld(
 ): Vec2 {
   const { vw, vh } = viewport
   const x = Math.floor(
-    (pointer.x - vw / 2 + camera.position.x) / 100,
+    (pointer.x - vw / 2 + camera.position.x) / TILE_SIZE,
   )
   const y = Math.floor(
-    (pointer.y - vh / 2 + camera.position.y) / 100,
+    (pointer.y - vh / 2 + camera.position.y) / TILE_SIZE,
   )
   return new Vec2(x, y)
 }
@@ -296,13 +298,13 @@ function RenderPointer({
     pointer,
     context,
     camera,
-  ).mul(100)
+  ).mul(TILE_SIZE)
   return (
     <rect
       x={x}
       y={y}
-      width={100}
-      height={100}
+      width={TILE_SIZE}
+      height={TILE_SIZE}
       fill="pink"
     />
   )
