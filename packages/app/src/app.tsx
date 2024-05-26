@@ -99,6 +99,20 @@ function useColor(): [
   return [color, setColor, colorRef]
 }
 
+export function useDirection(): [
+  Direction,
+  React.Dispatch<React.SetStateAction<Direction>>,
+  React.MutableRefObject<Direction>,
+] {
+  const [direction, setDirection] =
+    useState<Direction>('east')
+  const directionRef = useRef<Direction>(direction)
+  useEffect(() => {
+    directionRef.current = direction
+  }, [direction])
+  return [direction, setDirection, directionRef]
+}
+
 export function App() {
   const { vw, vh } = useContext(AppContext)
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
@@ -114,9 +128,8 @@ export function App() {
   const [state, setState] = useImmer<State>(initialState)
 
   const [camera, setCamera, cameraRef] = useCamera()
-
-  const [direction, setDirection] =
-    useState<Direction>('east')
+  const [direction, setDirection, directionRef] =
+    useDirection()
 
   const [ghost, setGhost] = useImmer<Omit<
     Entity,
@@ -319,7 +332,7 @@ export function App() {
             id,
             position: { x: world.x, y: world.y },
             color: colorRef.current,
-            direction: 'east',
+            direction: directionRef.current,
           }
           draft.entities[id] = entity
         })
