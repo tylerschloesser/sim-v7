@@ -32,6 +32,13 @@ const Camera = z.strictObject({
 })
 type Camera = z.infer<typeof Camera>
 
+function useCamera(): [Camera, Updater<Camera>] {
+  const [camera, setCamera] = useImmer<Camera>({
+    position: { x: 0, y: 0 },
+  })
+  return [camera, setCamera]
+}
+
 export function App() {
   const { vw, vh } = useContext(AppContext)
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
@@ -43,9 +50,7 @@ export function App() {
     nextEntityId: 0,
   })
 
-  const [camera, setCamera] = useImmer<Camera>({
-    position: { x: 0, y: 0 },
-  })
+  const [camera, setCamera] = useCamera()
 
   const [pointer, setPointer] = useImmer<Vec2 | null>(null)
 
@@ -167,6 +172,14 @@ export function App() {
       'pointerleave',
       () => {
         setPointer(null)
+      },
+      { signal },
+    )
+
+    document.addEventListener(
+      'pointerup',
+      (ev) => {
+        console.log('TODO')
       },
       { signal },
     )
