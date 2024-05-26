@@ -19,3 +19,11 @@ button {
   width: 100svw;
   height: 100svh;
 }
+
+#menu {
+  position: fixed;
+  top: 0;
+  color: white;
+  width: 100svw;
+  height: 100svh;
+}

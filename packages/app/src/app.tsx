@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react'
 import { Updater, useImmer } from 'use-immer'
 import * as z from 'zod'
@@ -82,6 +83,10 @@ export function App() {
   const { vw, vh } = useContext(AppContext)
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
+
+  const svg = useRef<SVGSVGElement>()
+
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const viewportRef = useViewportRef()
 
@@ -169,6 +174,12 @@ export function App() {
           input.current.east = value
           break
         }
+        case 'e': {
+          if (eventType === 'keyup') {
+            setMenuOpen((value) => !value)
+          }
+          break
+        }
       }
     }
 
@@ -189,7 +200,7 @@ export function App() {
   }, [signal])
 
   useEffect(() => {
-    document.addEventListener(
+    svg.current.addEventListener(
       'pointerenter',
       (ev) => {
         setPointer(new Vec2(ev.clientX, ev.clientY))
@@ -197,7 +208,7 @@ export function App() {
       { signal },
     )
 
-    document.addEventListener(
+    svg.current.addEventListener(
       'pointermove',
       (ev) => {
         setPointer(new Vec2(ev.clientX, ev.clientY))
@@ -205,7 +216,7 @@ export function App() {
       { signal },
     )
 
-    document.addEventListener(
+    svg.current.addEventListener(
       'pointerleave',
       () => {
         setPointer(null)
@@ -213,7 +224,7 @@ export function App() {
       { signal },
     )
 
-    document.addEventListener(
+    svg.current.addEventListener(
       'pointerup',
       (ev) => {
         const world = pointerToWorld(
@@ -242,7 +253,12 @@ export function App() {
 
   return (
     <Fragment>
-      <svg width={vw} height={vh} viewBox={viewBox}>
+      <svg
+        width={vw}
+        height={vh}
+        viewBox={viewBox}
+        ref={svg}
+      >
         <g
           transform={`translate(${vw / 2 - camera.position.x} ${vh / 2 - camera.position.y})`}
         >
@@ -265,8 +281,13 @@ export function App() {
           )}
         </g>
       </svg>
+      {menuOpen && <Menu />}
     </Fragment>
   )
+}
+
+function Menu() {
+  return <div id="menu">TODO</div>
 }
 
 interface RenderPointerProps {
