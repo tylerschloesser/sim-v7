@@ -290,13 +290,15 @@ export function App() {
         >
           {Object.values(state.entities).map((entity) => (
             <Fragment key={entity.id}>
-              <rect
-                x={entity.position.x * TILE_SIZE}
-                y={entity.position.y * TILE_SIZE}
-                width={TILE_SIZE}
-                height={TILE_SIZE}
-                fill={entity.color}
-              />
+              <g
+                transform={`translate(${entity.position.x * TILE_SIZE} ${entity.position.y * TILE_SIZE})`}
+              >
+                <rect
+                  width={TILE_SIZE}
+                  height={TILE_SIZE}
+                  fill={entity.color}
+                />
+              </g>
             </Fragment>
           ))}
           {pointer && (
