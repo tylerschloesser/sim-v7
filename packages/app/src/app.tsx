@@ -64,6 +64,20 @@ function useViewportRef() {
   return viewportRef
 }
 
+function initialState(): State {
+  const state: State = {
+    tick: 0,
+    entities: {},
+    nextEntityId: 0,
+  }
+  const entity: Entity = {
+    id: `${state.nextEntityId++}`,
+    position: { x: 0, y: 0 },
+  }
+  state.entities[entity.id] = entity
+  return state
+}
+
 export function App() {
   const { vw, vh } = useContext(AppContext)
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
@@ -71,11 +85,7 @@ export function App() {
 
   const viewportRef = useViewportRef()
 
-  const [state, setState] = useImmer<State>({
-    tick: 0,
-    entities: {},
-    nextEntityId: 0,
-  })
+  const [state, setState] = useImmer<State>(initialState)
 
   const [camera, setCamera, cameraRef] = useCamera()
 
@@ -225,13 +235,17 @@ export function App() {
         <g
           transform={`translate(${vw / 2 - camera.position.x} ${vh / 2 - camera.position.y})`}
         >
-          <rect
-            x={0}
-            y={0}
-            width={100}
-            height={100}
-            fill="red"
-          />
+          {Object.values(state.entities).map((entity) => (
+            <Fragment key={entity.id}>
+              <rect
+                x={entity.position.x * 100}
+                y={entity.position.y * 100}
+                width={100}
+                height={100}
+                fill="red"
+              />
+            </Fragment>
+          ))}
           {pointer && (
             <RenderPointer
               pointer={pointer}
