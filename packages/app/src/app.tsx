@@ -34,15 +34,9 @@ interface Entity {
   direction: Direction
 }
 
-interface Path {
-  id: string
-  positions: ZVec2[]
-}
-
 interface State {
   tick: number
   entities: Record<string, Entity>
-  paths: Record<string, Path>
 }
 
 const Camera = z.strictObject({
@@ -77,12 +71,6 @@ function useViewportRef() {
   return viewportRef
 }
 
-function getPaths(
-  entities: State['entities'],
-): State['paths'] {
-  return {}
-}
-
 function addEntity(
   draft: State,
   entity: Omit<Entity, 'id'>,
@@ -102,15 +90,12 @@ function addEntity(
   } else {
     draft.entities[id] = { id, ...entity }
   }
-
-  draft.paths = getPaths(draft.entities)
 }
 
 function initialState(): State {
   const state: State = {
     tick: 0,
     entities: {},
-    paths: {},
   }
   addEntity(state, {
     position: { x: 0, y: 0 },
