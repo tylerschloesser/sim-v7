@@ -188,27 +188,43 @@ export function App() {
             fill="red"
           />
           {pointer && (
-            <rect
-              x={
-                Math.floor(
-                  (pointer.x - vw / 2 + camera.position.x) /
-                    100,
-                ) * 100
-              }
-              y={
-                Math.floor(
-                  (pointer.y - vh / 2 + camera.position.y) /
-                    100,
-                ) * 100
-              }
-              width={100}
-              height={100}
-              fill="pink"
+            <RenderPointer
+              pointer={pointer}
+              camera={camera}
             />
           )}
         </g>
       </svg>
     </Fragment>
+  )
+}
+
+interface RenderPointerProps {
+  pointer: Vec2
+  camera: Camera
+}
+
+function RenderPointer({
+  pointer,
+  camera,
+}: RenderPointerProps) {
+  const { vw, vh } = useContext(AppContext)
+  return (
+    <rect
+      x={
+        Math.floor(
+          (pointer.x - vw / 2 + camera.position.x) / 100,
+        ) * 100
+      }
+      y={
+        Math.floor(
+          (pointer.y - vh / 2 + camera.position.y) / 100,
+        ) * 100
+      }
+      width={100}
+      height={100}
+      fill="pink"
+    />
   )
 }
 
