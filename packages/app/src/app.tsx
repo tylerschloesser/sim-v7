@@ -1,41 +1,31 @@
 import {
   Fragment,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
 } from 'react'
-import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 import * as z from 'zod'
 import { AppContext } from './app-context'
 import { Vec2 } from './vec2'
-
-const BELT_SPEED = 0.2
-
-interface Item {
-  id: string
-  position: number
-}
-
-interface State {
-  tick: number
-  items: Record<string, Item>
-  queue: Action[]
-  nextItemId: number
-}
-
-interface Action {
-  time: number
-  name: 'add-item'
-}
 
 const ZVec2 = z.strictObject({
   x: z.number(),
   y: z.number(),
 })
 type ZVec2 = z.infer<typeof ZVec2>
+
+interface Entity {
+  id: string
+  position: ZVec2
+}
+
+interface State {
+  tick: number
+  entities: Record<string, Entity>
+  nextEntityId: number
+}
 
 const Camera = z.strictObject({
   position: ZVec2,
@@ -49,9 +39,8 @@ export function App() {
 
   const [state, setState] = useImmer<State>({
     tick: 0,
-    items: {},
-    queue: [],
-    nextItemId: 0,
+    entities: {},
+    nextEntityId: 0,
   })
 
   const [camera, setCamera] = useImmer<Camera>({
@@ -185,15 +174,6 @@ export function App() {
 
   useTicker(setState)
 
-  const addItem = useCallback(() => {
-    setState((draft) => {
-      draft.queue.push({
-        time: performance.now(),
-        name: 'add-item',
-      })
-    })
-  }, [])
-
   return (
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
@@ -227,43 +207,12 @@ export function App() {
             />
           )}
         </g>
-        {pointer && (
-          <>
-            <circle
-              cx={pointer.x}
-              cy={pointer.y}
-              fill="green"
-              r="10"
-            />
-          </>
-        )}
       </svg>
-      <button onClick={addItem}>Add</button>
     </Fragment>
   )
 }
 
 function tick(draft: State): void {
-  if (draft.queue.length > 0) {
-    for (const action of draft.queue) {
-      invariant(action.name === 'add-item')
-      const item: Item = {
-        id: `${draft.nextItemId++}`,
-        position: 0,
-      }
-      draft.items[item.id] = item
-    }
-    draft.queue = []
-  }
-
-  for (const item of Object.values(draft.items)) {
-    item.position += BELT_SPEED * (1 / 60)
-
-    if (item.position > 1) {
-      delete draft.items[item.id]
-    }
-  }
-
   draft.tick++
 }
 
