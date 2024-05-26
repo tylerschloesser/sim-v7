@@ -196,7 +196,7 @@ export function App() {
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
         <g
-          transform={`translate(${vw / 2 + camera.position.x} ${vh / 2 + camera.position.y})`}
+          transform={`translate(${vw / 2 - camera.position.x} ${vh / 2 - camera.position.y})`}
         >
           <rect
             x={0}
@@ -205,14 +205,35 @@ export function App() {
             height={100}
             fill="red"
           />
+          {pointer && (
+            <rect
+              x={
+                Math.floor(
+                  (pointer.x - vw / 2 + camera.position.x) /
+                    100,
+                ) * 100
+              }
+              y={
+                Math.floor(
+                  (pointer.y - vh / 2 + camera.position.y) /
+                    100,
+                ) * 100
+              }
+              width={100}
+              height={100}
+              fill="pink"
+            />
+          )}
         </g>
         {pointer && (
-          <circle
-            cx={pointer.x}
-            cy={pointer.y}
-            fill="green"
-            r="10"
-          />
+          <>
+            <circle
+              cx={pointer.x}
+              cy={pointer.y}
+              fill="green"
+              r="10"
+            />
+          </>
         )}
       </svg>
       <button onClick={addItem}>Add</button>
