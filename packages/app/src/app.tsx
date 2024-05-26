@@ -34,13 +34,13 @@ export function App() {
 
   const queue = useRef<Action[]>([])
 
-  const [tickState, setTickState] = useImmer<State>({
+  const [state, setState] = useImmer<State>({
     tick: 0,
     items: {},
     nextItemId: 0,
   })
 
-  useTicker(queue, setTickState)
+  useTicker(queue, setState)
 
   const addItem = useCallback(() => {
     queue.current.push({
@@ -53,7 +53,7 @@ export function App() {
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
         <text fill="hsla(0, 0%, 50%, .5)" y="16">
-          Tick: {tickState.tick}
+          Tick: {state.tick}
         </text>
         <line
           x1={vw * 0.2}
@@ -63,7 +63,7 @@ export function App() {
           stroke="blue"
           strokeWidth={2}
         />
-        {Object.values(tickState.items).map((item) => (
+        {Object.values(state.items).map((item) => (
           <Fragment key={item.id}>
             <Rect position={item.position} />
           </Fragment>
@@ -76,12 +76,12 @@ export function App() {
 
 function useTicker(
   queue: React.MutableRefObject<Action[]>,
-  setTickState: Updater<State>,
+  setState: Updater<State>,
 ) {
   useEffect(() => {
     let handler: number
     function callback() {
-      setTickState((draft) => {
+      setState((draft) => {
         if (queue.current.length > 0) {
           for (const action of queue.current) {
             invariant(action.name === 'add-item')
