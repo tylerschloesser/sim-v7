@@ -10,6 +10,7 @@ import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 import * as z from 'zod'
 import { AppContext } from './app-context'
+import { Vec2 } from './vec2'
 
 const BELT_SPEED = 0.2
 
@@ -80,6 +81,37 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    let handle: number
+    function callback() {
+      setCamera((draft) => {
+        let v = Vec2.ZERO
+        if (input.current.north) {
+          v = v.add(new Vec2(0, -1))
+        }
+        if (input.current.south) {
+          v = v.add(new Vec2(0, +1))
+        }
+        if (input.current.east) {
+          v = v.add(new Vec2(+1, 0))
+        }
+        if (input.current.west) {
+          v = v.add(new Vec2(-1, 0))
+        }
+        if (v.len() > 0) {
+          const d = v.norm().mul(3)
+          draft.position.x += d.x
+          draft.position.y += d.y
+        }
+      })
+      handle = self.requestAnimationFrame(callback)
+    }
+    handle = self.requestAnimationFrame(callback)
+    return () => {
+      self.cancelAnimationFrame(handle)
+    }
+  }, [])
+
+  useEffect(() => {
     function handleKey(
       key: string,
       eventType: 'keydown' | 'keyup',
@@ -99,7 +131,7 @@ export function App() {
           break
         }
         case 'd': {
-          input.current.west = value
+          input.current.east = value
           break
         }
       }
@@ -135,7 +167,9 @@ export function App() {
   return (
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
-        <g transform={`translate(${vw / 2} ${vh / 2})`}>
+        <g
+          transform={`translate(${vw / 2 + camera.position.x} ${vh / 2 + camera.position.y})`}
+        >
           <rect
             x={0}
             y={0}
