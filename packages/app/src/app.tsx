@@ -115,6 +115,9 @@ export function App() {
 
   const [camera, setCamera, cameraRef] = useCamera()
 
+  const [direction, setDirection] =
+    useState<Direction>('east')
+
   const [ghost, setGhost] = useImmer<Omit<
     Entity,
     'id'
@@ -139,15 +142,16 @@ export function App() {
             y: world.y,
           },
           color,
-          direction: 'east',
+          direction,
         }
       } else {
         draft.position.x = world.x
         draft.position.y = world.y
         draft.color = color
+        draft.direction = direction
       }
     })
-  }, [color, pointer])
+  }, [color, pointer, direction])
 
   const input = useRef<{
     north: boolean
@@ -230,6 +234,23 @@ export function App() {
         case 'e': {
           if (eventType === 'keyup') {
             setMenuOpen((value) => !value)
+          }
+          break
+        }
+        case 'r': {
+          if (eventType === 'keyup') {
+            setDirection((prev) => {
+              switch (prev) {
+                case 'north':
+                  return 'east'
+                case 'east':
+                  return 'south'
+                case 'south':
+                  return 'west'
+                case 'west':
+                  return 'north'
+              }
+            })
           }
           break
         }
@@ -402,10 +423,26 @@ interface RenderEntityProps {
   entity: Omit<Entity, 'id'>
 }
 function RenderEntity({ entity }: RenderEntityProps) {
+  const transform = useMemo(() => {
+    let rotate: number
+    switch (entity.direction) {
+      case 'north':
+        rotate = -90
+        break
+      case 'south':
+        rotate = 90
+        break
+      case 'east':
+        rotate = 0
+        break
+      case 'west':
+        rotate = 180
+        break
+    }
+    return `translate(${entity.position.x * TILE_SIZE} ${entity.position.y * TILE_SIZE}) rotate(${rotate}, ${TILE_SIZE / 2}, ${TILE_SIZE / 2})`
+  }, [entity])
   return (
-    <g
-      transform={`translate(${entity.position.x * TILE_SIZE} ${entity.position.y * TILE_SIZE})`}
-    >
+    <g transform={transform}>
       <rect
         width={TILE_SIZE}
         height={TILE_SIZE}
