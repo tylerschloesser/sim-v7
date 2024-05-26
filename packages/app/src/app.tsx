@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 import * as z from 'zod'
 import { AppContext } from './app-context'
@@ -27,6 +28,7 @@ type ZVec2 = z.infer<typeof ZVec2>
 interface Entity {
   id: string
   position: ZVec2
+  color: string
 }
 
 interface State {
@@ -74,9 +76,23 @@ function initialState(): State {
   const entity: Entity = {
     id: '0.0',
     position: { x: 0, y: 0 },
+    color: 'red',
   }
   state.entities[entity.id] = entity
   return state
+}
+
+function useColor(): [
+  string,
+  (color: string) => void,
+  React.MutableRefObject<string>,
+] {
+  const [color, setColor] = useState<string>('red')
+  const colorRef = useRef<string>(color)
+  useEffect(() => {
+    colorRef.current = color
+  }, [color])
+  return [color, setColor, colorRef]
 }
 
 export function App() {
@@ -84,7 +100,8 @@ export function App() {
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
-  const svg = useRef<SVGSVGElement>()
+  const [_color, setColor, colorRef] = useColor()
+  const svg = useRef<SVGSVGElement>(null)
 
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -200,6 +217,7 @@ export function App() {
   }, [signal])
 
   useEffect(() => {
+    invariant(svg.current)
     svg.current.addEventListener(
       'pointerenter',
       (ev) => {
@@ -234,13 +252,16 @@ export function App() {
         )
         setState((draft) => {
           const id = `${world.x}.${world.y}`
-          if (draft.entities[id]) {
+          if (
+            draft.entities[id]?.color === colorRef.current
+          ) {
             delete draft.entities[id]
             return
           }
           const entity: Entity = {
             id,
             position: { x: world.x, y: world.y },
+            color: colorRef.current,
           }
           draft.entities[id] = entity
         })
@@ -269,7 +290,7 @@ export function App() {
                 y={entity.position.y * TILE_SIZE}
                 width={TILE_SIZE}
                 height={TILE_SIZE}
-                fill="red"
+                fill={entity.color}
               />
             </Fragment>
           ))}
@@ -281,13 +302,41 @@ export function App() {
           )}
         </g>
       </svg>
-      {menuOpen && <Menu />}
+      {menuOpen && (
+        <Menu
+          setColor={setColor}
+          setMenuOpen={setMenuOpen}
+        />
+      )}
     </Fragment>
   )
 }
 
-function Menu() {
-  return <div id="menu">TODO</div>
+interface MenuProps {
+  setColor(color: string): void
+  setMenuOpen(menuOpen: boolean): void
+}
+function Menu({ setColor, setMenuOpen }: MenuProps) {
+  return (
+    <div id="menu">
+      <button
+        onClick={() => {
+          setColor('red')
+          setMenuOpen(false)
+        }}
+      >
+        Red
+      </button>
+      <button
+        onClick={() => {
+          setColor('blue')
+          setMenuOpen(false)
+        }}
+      >
+        Blue
+      </button>
+    </div>
+  )
 }
 
 interface RenderPointerProps {

@@ -3,6 +3,8 @@
     "jsx": "react-jsx",
     "target": "ESNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ESNext", "DOM"]
+    "lib": ["ESNext", "DOM"],
+    "noUncheckedIndexedAccess": true,
+    "strict": true
   }
 }

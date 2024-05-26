@@ -8,11 +8,6 @@ svg {
 }
 
 button {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-
-  padding: 2rem;
 }
 
 #app {
@@ -26,4 +21,9 @@ button {
   color: white;
   width: 100svw;
   height: 100svh;
+  background: gray;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
