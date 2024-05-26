@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
 } from 'react'
 import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
@@ -20,6 +19,7 @@ interface Item {
 interface State {
   tick: number
   items: Record<string, Item>
+  queue: Action[]
   nextItemId: number
 }
 
@@ -32,20 +32,21 @@ export function App() {
   const { vw, vh } = useContext(AppContext)
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
-  const queue = useRef<Action[]>([])
-
   const [state, setState] = useImmer<State>({
     tick: 0,
     items: {},
+    queue: [],
     nextItemId: 0,
   })
 
-  useTicker(queue, setState)
+  useTicker(setState)
 
   const addItem = useCallback(() => {
-    queue.current.push({
-      time: performance.now(),
-      name: 'add-item',
+    setState((draft) => {
+      draft.queue.push({
+        time: performance.now(),
+        name: 'add-item',
+      })
     })
   }, [])
 
@@ -74,37 +75,35 @@ export function App() {
   )
 }
 
-function useTicker(
-  queue: React.MutableRefObject<Action[]>,
-  setState: Updater<State>,
-) {
+function tick(draft: State): void {
+  if (draft.queue.length > 0) {
+    for (const action of draft.queue) {
+      invariant(action.name === 'add-item')
+      const item: Item = {
+        id: `${draft.nextItemId++}`,
+        position: 0,
+      }
+      draft.items[item.id] = item
+    }
+    draft.queue = []
+  }
+
+  for (const item of Object.values(draft.items)) {
+    item.position += BELT_SPEED * (1 / 60)
+
+    if (item.position > 1) {
+      delete draft.items[item.id]
+    }
+  }
+
+  draft.tick++
+}
+
+function useTicker(setState: Updater<State>) {
   useEffect(() => {
     let handler: number
     function callback() {
-      setState((draft) => {
-        if (queue.current.length > 0) {
-          for (const action of queue.current) {
-            invariant(action.name === 'add-item')
-            const item: Item = {
-              id: `${draft.nextItemId++}`,
-              position: 0,
-            }
-            draft.items[item.id] = item
-          }
-          queue.current = []
-        }
-
-        for (const item of Object.values(draft.items)) {
-          item.position += BELT_SPEED * (1 / 60)
-
-          if (item.position > 1) {
-            delete draft.items[item.id]
-          }
-        }
-
-        draft.tick++
-      })
-
+      setState(tick)
       handler = self.requestAnimationFrame(callback)
     }
     handler = self.requestAnimationFrame(callback)
