@@ -44,6 +44,7 @@ type Camera = z.infer<typeof Camera>
 
 export function App() {
   const { vw, vh } = useContext(AppContext)
+  const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
   const [state, setState] = useImmer<State>({
@@ -100,7 +101,8 @@ export function App() {
           v = v.add(new Vec2(-1, 0))
         }
         if (v.len() > 0) {
-          const d = v.norm().mul(3)
+          const speed = vmin / 2 / 60
+          const d = v.norm().mul(speed)
           draft.position.x += d.x
           draft.position.y += d.y
         }
@@ -111,7 +113,7 @@ export function App() {
     return () => {
       self.cancelAnimationFrame(handle)
     }
-  }, [])
+  }, [vmin])
 
   useEffect(() => {
     function handleKey(
