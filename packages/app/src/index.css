@@ -14,3 +14,8 @@ button {
 
   padding: 2rem;
 }
+
+#app {
+  width: 100svw;
+  height: 100svh;
+}

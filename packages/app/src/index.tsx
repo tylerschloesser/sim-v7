@@ -8,13 +8,18 @@ invariant(container)
 
 const root = createRoot(container)
 
-const context: AppContext = {
-  vw: window.innerWidth,
-  vh: window.innerHeight,
-}
+const ro = new ResizeObserver((entries) => {
+  invariant(entries.length === 1)
+  const { contentRect: rect } = entries.at(0)
+  const context: AppContext = {
+    vw: rect.width,
+    vh: rect.height,
+  }
+  root.render(
+    <AppContext.Provider value={context}>
+      <App />
+    </AppContext.Provider>,
+  )
+})
 
-root.render(
-  <AppContext.Provider value={context}>
-    <App />
-  </AppContext.Provider>,
-)
+ro.observe(container)
