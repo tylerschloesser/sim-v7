@@ -175,7 +175,6 @@ export function App() {
     document.addEventListener(
       'pointerleave',
       () => {
-        console.log('leave')
         setPointer(null)
       },
       { signal },
