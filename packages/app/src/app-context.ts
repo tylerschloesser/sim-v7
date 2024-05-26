@@ -1,11 +1,11 @@
 import { createContext } from 'react'
 
-export interface IAppContext {
+export interface AppContext {
   vw: number
   vh: number
 }
 
-export const AppContext = createContext<IAppContext>({
+export const AppContext = createContext<AppContext>({
   vw: 0,
   vh: 0,
 })
