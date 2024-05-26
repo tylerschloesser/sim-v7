@@ -323,7 +323,10 @@ export function App() {
         setState((draft) => {
           const id = `${world.x}.${world.y}`
           if (
-            draft.entities[id]?.color === colorRef.current
+            draft.entities[id]?.color ===
+              colorRef.current &&
+            draft.entities[id]?.direction ===
+              directionRef.current
           ) {
             delete draft.entities[id]
             return
