@@ -34,9 +34,15 @@ interface Entity {
   direction: Direction
 }
 
+interface Path {
+  id: string
+  positions: ZVec2[]
+}
+
 interface State {
   tick: number
   entities: Record<string, Entity>
+  paths: Record<string, Path>
 }
 
 const Camera = z.strictObject({
@@ -71,18 +77,38 @@ function useViewportRef() {
   return viewportRef
 }
 
+function addEntity(
+  draft: State,
+  entity: Omit<Entity, 'id'>,
+): void {
+  const id = `${entity.position.x}.${entity.position.y}`
+  const existing = draft.entities[id]
+  if (existing) {
+    if (
+      existing.color === entity.color &&
+      existing.direction === entity.direction
+    ) {
+      delete draft.entities[id]
+    } else {
+      existing.color = entity.color
+      existing.direction = entity.direction
+    }
+  } else {
+    draft.entities[id] = { id, ...entity }
+  }
+}
+
 function initialState(): State {
   const state: State = {
     tick: 0,
     entities: {},
+    paths: {},
   }
-  const entity: Entity = {
-    id: '0.0',
+  addEntity(state, {
     position: { x: 0, y: 0 },
     color: 'red',
     direction: 'east',
-  }
-  state.entities[entity.id] = entity
+  })
   return state
 }
 
@@ -321,23 +347,11 @@ export function App() {
           cameraRef.current,
         )
         setState((draft) => {
-          const id = `${world.x}.${world.y}`
-          if (
-            draft.entities[id]?.color ===
-              colorRef.current &&
-            draft.entities[id]?.direction ===
-              directionRef.current
-          ) {
-            delete draft.entities[id]
-            return
-          }
-          const entity: Entity = {
-            id,
-            position: { x: world.x, y: world.y },
+          addEntity(draft, {
+            position: world,
             color: colorRef.current,
             direction: directionRef.current,
-          }
-          draft.entities[id] = entity
+          })
         })
       },
       { signal },
