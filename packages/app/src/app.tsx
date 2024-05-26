@@ -298,6 +298,12 @@ export function App() {
                   height={TILE_SIZE}
                   fill={entity.color}
                 />
+                <circle
+                  cx={TILE_SIZE}
+                  cy={TILE_SIZE / 2}
+                  r={TILE_SIZE * 0.1}
+                  fill="green"
+                />
               </g>
             </Fragment>
           ))}
