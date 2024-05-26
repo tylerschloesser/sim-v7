@@ -104,7 +104,7 @@ export function App() {
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
-  const [_color, setColor, colorRef] = useColor()
+  const [color, setColor, colorRef] = useColor()
   const svg = useRef<SVGSVGElement>(null)
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -115,7 +115,39 @@ export function App() {
 
   const [camera, setCamera, cameraRef] = useCamera()
 
+  const [ghost, setGhost] = useImmer<Omit<
+    Entity,
+    'id'
+  > | null>(null)
+
   const [pointer, setPointer] = useImmer<Vec2 | null>(null)
+
+  useEffect(() => {
+    setGhost((draft) => {
+      if (!pointer) {
+        return null
+      }
+      const world = pointerToWorld(
+        pointer,
+        viewportRef.current,
+        cameraRef.current,
+      )
+      if (!draft) {
+        return {
+          position: {
+            x: world.x,
+            y: world.y,
+          },
+          color,
+          direction: 'east',
+        }
+      } else {
+        draft.position.x = world.x
+        draft.position.y = world.y
+        draft.color = color
+      }
+    })
+  }, [color, pointer])
 
   const input = useRef<{
     north: boolean
@@ -293,12 +325,7 @@ export function App() {
               <RenderEntity entity={entity} />
             </Fragment>
           ))}
-          {pointer && (
-            <RenderPointer
-              pointer={pointer}
-              camera={camera}
-            />
-          )}
+          {ghost && <RenderEntity entity={ghost} />}
         </g>
       </svg>
       {menuOpen && (
@@ -338,11 +365,6 @@ function Menu({ setColor, setMenuOpen }: MenuProps) {
   )
 }
 
-interface RenderPointerProps {
-  pointer: Vec2
-  camera: Camera
-}
-
 function pointerToWorld(
   pointer: Vec2,
   viewport: Viewport,
@@ -356,27 +378,6 @@ function pointerToWorld(
     (pointer.y - vh / 2 + camera.position.y) / TILE_SIZE,
   )
   return new Vec2(x, y)
-}
-
-function RenderPointer({
-  pointer,
-  camera,
-}: RenderPointerProps) {
-  const context = useContext(AppContext)
-  const { x, y } = pointerToWorld(
-    pointer,
-    context,
-    camera,
-  ).mul(TILE_SIZE)
-  return (
-    <rect
-      x={x}
-      y={y}
-      width={TILE_SIZE}
-      height={TILE_SIZE}
-      fill="pink"
-    />
-  )
 }
 
 function tick(draft: State): void {
@@ -398,7 +399,7 @@ function useTicker(setState: Updater<State>) {
 }
 
 interface RenderEntityProps {
-  entity: Entity
+  entity: Omit<Entity, 'id'>
 }
 function RenderEntity({ entity }: RenderEntityProps) {
   return (
