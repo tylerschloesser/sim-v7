@@ -204,23 +204,33 @@ interface RenderPointerProps {
   camera: Camera
 }
 
+function pointerToWorld(
+  pointer: Vec2,
+  context: AppContext,
+  camera: Camera,
+): Vec2 {
+  const { vw, vh } = context
+  const x =
+    Math.floor(
+      (pointer.x - vw / 2 + camera.position.x) / 100,
+    ) * 100
+  const y =
+    Math.floor(
+      (pointer.y - vh / 2 + camera.position.y) / 100,
+    ) * 100
+  return new Vec2(x, y)
+}
+
 function RenderPointer({
   pointer,
   camera,
 }: RenderPointerProps) {
-  const { vw, vh } = useContext(AppContext)
+  const context = useContext(AppContext)
+  const { x, y } = pointerToWorld(pointer, context, camera)
   return (
     <rect
-      x={
-        Math.floor(
-          (pointer.x - vw / 2 + camera.position.x) / 100,
-        ) * 100
-      }
-      y={
-        Math.floor(
-          (pointer.y - vh / 2 + camera.position.y) / 100,
-        ) * 100
-      }
+      x={x}
+      y={y}
       width={100}
       height={100}
       fill="pink"
