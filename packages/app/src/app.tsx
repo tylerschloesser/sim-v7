@@ -23,6 +23,18 @@ interface TickState {
   nextItemId: number
 }
 
+interface Motion {
+  time: number
+  duration: number
+
+  source: number
+  target: number
+}
+
+interface MotionState {
+  items: Record<string, Motion[]>
+}
+
 interface RenderItem {
   id: string
   position: number
@@ -50,15 +62,19 @@ export function App() {
     nextItemId: 0,
   })
 
+  const motionState = useRef<MotionState>({
+    items: {},
+  })
+
   const [renderState, setRenderState] =
     useImmer<RenderState>({
       tick: 0,
       items: {},
     })
 
-  useTicker(queue, tickState)
+  useTicker(queue, motionState, tickState)
 
-  useRenderLoop(tickState, setRenderState)
+  useRenderLoop(tickState, motionState, setRenderState)
 
   const addItem = useCallback(() => {
     queue.current.push({
@@ -70,11 +86,7 @@ export function App() {
   return (
     <Fragment>
       <svg width={vw} height={vh} viewBox={viewBox}>
-        <text
-          fill="hsla(0, 0%, 50%, .5)"
-          y="16"
-          textRendering="optimizeLegibility"
-        >
+        <text fill="hsla(0, 0%, 50%, .5)" y="16">
           Tick: {renderState.tick}
         </text>
         <line
@@ -98,12 +110,11 @@ export function App() {
 
 function useTicker(
   queue: React.MutableRefObject<Action[]>,
+  motionState: React.MutableRefObject<MotionState>,
   tickState: React.MutableRefObject<TickState>,
 ) {
   useEffect(() => {
     const interval = self.setInterval(() => {
-      tickState.current.tick++
-
       if (queue.current.length > 0) {
         const next = queue.current.shift()
         invariant(next.name === 'add-item')
@@ -112,16 +123,23 @@ function useTicker(
           position: 0,
         }
         tickState.current.items[item.id] = item
+        motionState.current.items[item.id] = []
       }
 
       for (const item of Object.values(
         tickState.current.items,
       )) {
+        motionState.current.items[item.id].push({
+          time: tickState.current.tick,
+          duration: 1,
+          source: item.position,
+          target: item.position + BELT_SPEED,
+        })
+
         item.position += BELT_SPEED
-        if (item.position > 1) {
-          delete tickState.current.items[item.id]
-        }
       }
+
+      tickState.current.tick++
     }, 1000)
 
     return () => {
@@ -161,15 +179,26 @@ function Rect({ position }: RectProps) {
 
 function useRenderLoop(
   tickState: React.MutableRefObject<TickState>,
+  motionState: React.MutableRefObject<MotionState>,
   setRenderState: Updater<RenderState>,
 ) {
   useEffect(() => {
     let handle: number
+
+    let lastTime = self.performance.now()
+
     const callback: FrameRequestCallback = () => {
       handle = self.requestAnimationFrame(callback)
 
+      const now = self.performance.now()
+      const elapsed = now - lastTime
+      lastTime = now
+
       setRenderState((renderState) => {
-        renderState.tick = tickState.current.tick
+        renderState.tick = Math.min(
+          renderState.tick + elapsed / 1000,
+          tickState.current.tick - 1,
+        )
 
         const itemIds = new Set<string>([
           ...Object.keys(renderState.items),
@@ -177,21 +206,37 @@ function useRenderLoop(
         ])
 
         for (const itemId of itemIds) {
-          const tickItem = tickState.current.items[itemId]
-          if (!tickItem) {
-            invariant(renderState.items[itemId])
-            delete renderState.items[itemId]
-            continue
+          let motions = motionState.current.items[itemId]
+          invariant(motions)
+
+          motionState.current.items[itemId] = motions =
+            motions.filter(
+              (value) =>
+                value.time + value.duration >
+                renderState.tick,
+            )
+
+          let motion: Motion | null = motions.at(0)
+          if (motion.time >= renderState.tick) {
+            motion = null
           }
+
+          const tickItem = tickState.current.items[itemId]
+          const position = motion
+            ? motion.source +
+              (motion.target - motion.source) *
+                ((renderState.tick - motion.time) /
+                  motion.duration)
+            : tickItem.position
 
           const renderItem = renderState.items[itemId]
           if (!renderItem) {
             renderState.items[itemId] = {
               id: itemId,
-              position: tickItem.position,
+              position,
             }
           } else {
-            renderItem.position = tickItem.position
+            renderItem.position = position
           }
         }
       })
