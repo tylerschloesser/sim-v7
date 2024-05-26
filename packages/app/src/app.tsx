@@ -25,10 +25,13 @@ const ZVec2 = z.strictObject({
 })
 type ZVec2 = z.infer<typeof ZVec2>
 
+type Direction = 'north' | 'south' | 'east' | 'west'
+
 interface Entity {
   id: string
   position: ZVec2
   color: string
+  direction: Direction
 }
 
 interface State {
@@ -77,6 +80,7 @@ function initialState(): State {
     id: '0.0',
     position: { x: 0, y: 0 },
     color: 'red',
+    direction: 'east',
   }
   state.entities[entity.id] = entity
   return state
@@ -262,6 +266,7 @@ export function App() {
             id,
             position: { x: world.x, y: world.y },
             color: colorRef.current,
+            direction: 'east',
           }
           draft.entities[id] = entity
         })
