@@ -12,6 +12,7 @@ import * as z from 'zod'
 import { AppContext } from './app-context'
 import { Vec2 } from './vec2'
 
+const BELT_SPEED = 0.5
 const TILE_SIZE = 50
 
 interface Viewport {
@@ -521,6 +522,33 @@ function pointerToWorld(
 }
 
 function tick(draft: State): void {
+  for (const entity of Object.values(draft.entities)) {
+    for (let i = 0; i < entity.items.length; i++) {
+      entity.items[i] += BELT_SPEED * (1 / 60)
+    }
+  }
+
+  for (const entity of Object.values(draft.entities)) {
+    for (let i = 0; i < entity.items.length; i++) {
+      if (entity.items.at(-i - 1)! >= 1) {
+        const tail = entity.items.pop()! - 1
+        invariant(tail >= 0)
+
+        if (entity.outputId) {
+          const output = draft.entities[entity.outputId]
+          invariant(output)
+          const head = output.items.at(0)
+          if (head) {
+            invariant(head >= tail)
+          }
+          output.items.unshift(tail)
+        }
+      } else {
+        break
+      }
+    }
+  }
+
   draft.tick++
 }
 
