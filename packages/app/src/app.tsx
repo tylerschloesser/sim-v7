@@ -549,12 +549,38 @@ function RenderEntity({
       )}
       {(layer === RenderEntityLayer.All ||
         layer === RenderEntityLayer.Layer2) && (
-        <circle
-          cx={TILE_SIZE}
-          cy={TILE_SIZE / 2}
-          r={TILE_SIZE * 0.1}
-          fill="green"
-        />
+        <>
+          <circle
+            cx={TILE_SIZE}
+            cy={TILE_SIZE / 2}
+            r={TILE_SIZE * 0.1}
+            fill="green"
+          />
+          {entity.outputId && (
+            <>
+              <circle
+                cx={TILE_SIZE / 2}
+                cy={TILE_SIZE / 2}
+                r={TILE_SIZE * 0.1}
+                fill="cyan"
+              />
+              <circle
+                cx={TILE_SIZE + TILE_SIZE / 2}
+                cy={TILE_SIZE / 2}
+                r={TILE_SIZE * 0.1}
+                fill="cyan"
+              />
+              <line
+                x1={TILE_SIZE / 2}
+                y1={TILE_SIZE / 2}
+                x2={TILE_SIZE + TILE_SIZE / 2}
+                y2={TILE_SIZE / 2}
+                stroke="cyan"
+                strokeWidth="2"
+              />
+            </>
+          )}
+        </>
       )}
     </g>
   )
