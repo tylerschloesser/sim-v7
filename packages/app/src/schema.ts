@@ -1,0 +1,66 @@
+import * as z from 'zod'
+
+export const ZVec2 = z.strictObject({
+  x: z.number(),
+  y: z.number(),
+})
+export type ZVec2 = z.infer<typeof ZVec2>
+
+export const EntityType = z.enum(['Belt'])
+export type EntityType = z.infer<typeof EntityType>
+
+export const Direction = z.enum([
+  'North',
+  'South',
+  'East',
+  'West',
+])
+export type Direction = z.infer<typeof Direction>
+
+export const LaneType = z.enum([
+  'Out',
+  'InStraight',
+  'InLeft',
+  'InRight',
+])
+export type LaneType = z.infer<typeof LaneType>
+
+export const EntityId = z.string()
+export type EntityId = z.infer<typeof EntityId>
+
+export const BeltOutput = z.strictObject({
+  id: EntityId,
+  laneType: LaneType,
+})
+
+export type BeltOutput = z.infer<typeof BeltOutput>
+
+export const Lane = z.number().array()
+export type Lane = z.infer<typeof Lane>
+
+export const BeltEntity = z.strictObject({
+  type: z.literal(EntityType.enum.Belt),
+  id: EntityId,
+  position: ZVec2,
+  color: z.string(),
+  direction: Direction,
+  output: BeltOutput.nullable(),
+  lanes: z.strictObject({
+    [LaneType.enum.InStraight]: Lane,
+    [LaneType.enum.InLeft]: Lane,
+    [LaneType.enum.InRight]: Lane,
+    [LaneType.enum.Out]: Lane,
+  }),
+})
+export type BeltEntity = z.infer<typeof BeltEntity>
+
+export const Entity = z.discriminatedUnion('type', [
+  BeltEntity,
+])
+export type Entity = z.infer<typeof Entity>
+
+export const World = z.strictObject({
+  tick: z.number().int().nonnegative(),
+  entities: z.record(EntityId, Entity),
+})
+export type World = z.infer<typeof World>

@@ -10,49 +10,24 @@ import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 import * as z from 'zod'
 import { AppContext } from './app-context'
+import {
+  BeltEntity,
+  Direction,
+  Entity,
+  EntityType,
+  LaneType,
+  World,
+  ZVec2,
+} from './schema'
 import { Vec2 } from './vec2'
 
 const BELT_SPEED = 0.5
 const TILE_SIZE = 50
+const ITEM_SIZE = TILE_SIZE * 0.5
 
 interface Viewport {
   vw: number
   vh: number
-}
-
-const ZVec2 = z.strictObject({
-  x: z.number(),
-  y: z.number(),
-})
-type ZVec2 = z.infer<typeof ZVec2>
-
-type Direction = 'north' | 'south' | 'east' | 'west'
-
-enum LaneType {
-  Out = 'out',
-  InStraight = 'in-straight',
-  InLeft = 'in-left',
-  InRight = 'in-right',
-}
-
-interface Entity {
-  id: string
-  position: ZVec2
-  color: string
-  direction: Direction
-  output: {
-    id: string
-    laneType:
-      | LaneType.InStraight
-      | LaneType.InLeft
-      | LaneType.InRight
-  } | null
-  lanes: Record<LaneType, number[]>
-}
-
-interface State {
-  tick: number
-  entities: Record<string, Entity>
 }
 
 const Camera = z.strictObject({
@@ -88,77 +63,77 @@ function useViewportRef() {
 }
 
 function getOutputLaneType(
-  entity: Entity,
-  neighbor: Entity,
+  entity: BeltEntity,
+  neighbor: BeltEntity,
 ):
-  | LaneType.InStraight
-  | LaneType.InLeft
-  | LaneType.InRight
+  | typeof LaneType.enum.InStraight
+  | typeof LaneType.enum.InLeft
+  | typeof LaneType.enum.InRight
   | null {
   switch (entity.direction) {
-    case 'north':
+    case Direction.enum.North:
       switch (neighbor.direction) {
-        case 'north':
-          return LaneType.InStraight
-        case 'south':
+        case Direction.enum.North:
+          return LaneType.enum.InStraight
+        case Direction.enum.South:
           return null
-        case 'east':
-          return LaneType.InRight
-        case 'west':
-          return LaneType.InLeft
+        case Direction.enum.East:
+          return LaneType.enum.InRight
+        case Direction.enum.West:
+          return LaneType.enum.InLeft
       }
-    case 'south':
+    case Direction.enum.South:
       switch (neighbor.direction) {
-        case 'north':
+        case Direction.enum.North:
           return null
-        case 'south':
-          return LaneType.InStraight
-        case 'east':
-          return LaneType.InLeft
-        case 'west':
-          return LaneType.InRight
+        case Direction.enum.South:
+          return LaneType.enum.InStraight
+        case Direction.enum.East:
+          return LaneType.enum.InLeft
+        case Direction.enum.West:
+          return LaneType.enum.InRight
       }
-    case 'east':
+    case Direction.enum.East:
       switch (neighbor.direction) {
-        case 'north':
-          return LaneType.InLeft
-        case 'south':
-          return LaneType.InRight
-        case 'east':
-          return LaneType.InStraight
-        case 'west':
+        case Direction.enum.North:
+          return LaneType.enum.InLeft
+        case Direction.enum.South:
+          return LaneType.enum.InRight
+        case Direction.enum.East:
+          return LaneType.enum.InStraight
+        case Direction.enum.West:
           return null
       }
-    case 'west':
+    case Direction.enum.West:
       switch (neighbor.direction) {
-        case 'north':
-          return LaneType.InRight
-        case 'south':
-          return LaneType.InLeft
-        case 'east':
+        case Direction.enum.North:
+          return LaneType.enum.InRight
+        case Direction.enum.South:
+          return LaneType.enum.InLeft
+        case Direction.enum.East:
           return null
-        case 'west':
-          return LaneType.InStraight
+        case Direction.enum.West:
+          return LaneType.enum.InStraight
       }
   }
 }
 
-function updateOutputs(draft: State): void {
+function updateOutputs(draft: World): void {
   for (const entity of Object.values(draft.entities)) {
     entity.output = null
 
     let d: Vec2
     switch (entity.direction) {
-      case 'north':
+      case Direction.enum.North:
         d = new Vec2(0, -1)
         break
-      case 'south':
+      case Direction.enum.South:
         d = new Vec2(0, +1)
         break
-      case 'east':
+      case Direction.enum.East:
         d = new Vec2(+1, 0)
         break
-      case 'west':
+      case Direction.enum.West:
         d = new Vec2(-1, 0)
         break
     }
@@ -177,9 +152,12 @@ function updateOutputs(draft: State): void {
   }
 }
 
-function addEntity(
-  draft: State,
-  entity: Omit<Entity, 'id' | 'output' | 'lanes'>,
+function addBeltEntity(
+  draft: World,
+  entity: Omit<
+    BeltEntity,
+    'type' | 'id' | 'output' | 'lanes'
+  >,
 ): void {
   const id = `${entity.position.x}.${entity.position.y}`
   const existing = draft.entities[id]
@@ -195,13 +173,14 @@ function addEntity(
     }
   } else {
     draft.entities[id] = {
+      type: EntityType.enum.Belt,
       id,
       output: null, // will be set later
       lanes: {
-        [LaneType.Out]: [0],
-        [LaneType.InStraight]: [],
-        [LaneType.InLeft]: [],
-        [LaneType.InRight]: [],
+        [LaneType.enum.Out]: [0],
+        [LaneType.enum.InStraight]: [],
+        [LaneType.enum.InLeft]: [],
+        [LaneType.enum.InRight]: [],
       },
       ...entity,
     }
@@ -209,17 +188,17 @@ function addEntity(
   updateOutputs(draft)
 }
 
-function initialState(): State {
-  const state: State = {
+function initialWorld(): World {
+  const world: World = {
     tick: 0,
     entities: {},
   }
-  addEntity(state, {
+  addBeltEntity(world, {
     position: { x: 0, y: 0 },
     color: 'red',
-    direction: 'east',
+    direction: Direction.enum.East,
   })
-  return state
+  return world
 }
 
 function useColor(): [
@@ -240,8 +219,9 @@ export function useDirection(): [
   React.Dispatch<React.SetStateAction<Direction>>,
   React.MutableRefObject<Direction>,
 ] {
-  const [direction, setDirection] =
-    useState<Direction>('east')
+  const [direction, setDirection] = useState<Direction>(
+    Direction.enum.East,
+  )
   const directionRef = useRef<Direction>(direction)
   useEffect(() => {
     directionRef.current = direction
@@ -261,7 +241,7 @@ export function App() {
 
   const viewportRef = useViewportRef()
 
-  const [state, setState] = useImmer<State>(initialState)
+  const [world, setWorld] = useImmer<World>(initialWorld)
 
   const [camera, setCamera, cameraRef] = useCamera()
   const [direction, setDirection, directionRef] =
@@ -286,6 +266,7 @@ export function App() {
       )
       if (!draft) {
         const next: Omit<Entity, 'id'> = {
+          type: EntityType.enum.Belt,
           position: {
             x: world.x,
             y: world.y,
@@ -293,10 +274,10 @@ export function App() {
           color,
           direction,
           lanes: {
-            [LaneType.Out]: [],
-            [LaneType.InStraight]: [],
-            [LaneType.InLeft]: [],
-            [LaneType.InRight]: [],
+            [LaneType.enum.Out]: [],
+            [LaneType.enum.InStraight]: [],
+            [LaneType.enum.InLeft]: [],
+            [LaneType.enum.InRight]: [],
           },
           output: null,
         }
@@ -408,25 +389,25 @@ export function App() {
             setDirection((prev) => {
               if (ev.shiftKey) {
                 switch (prev) {
-                  case 'north':
-                    return 'west'
-                  case 'west':
-                    return 'south'
-                  case 'south':
-                    return 'east'
-                  case 'east':
-                    return 'north'
+                  case Direction.enum.North:
+                    return Direction.enum.West
+                  case Direction.enum.West:
+                    return Direction.enum.South
+                  case Direction.enum.South:
+                    return Direction.enum.East
+                  case Direction.enum.East:
+                    return Direction.enum.North
                 }
               } else {
                 switch (prev) {
-                  case 'north':
-                    return 'east'
-                  case 'east':
-                    return 'south'
-                  case 'south':
-                    return 'west'
-                  case 'west':
-                    return 'north'
+                  case Direction.enum.North:
+                    return Direction.enum.East
+                  case Direction.enum.East:
+                    return Direction.enum.South
+                  case Direction.enum.South:
+                    return Direction.enum.West
+                  case Direction.enum.West:
+                    return Direction.enum.North
                 }
               }
             })
@@ -486,11 +467,11 @@ export function App() {
           viewportRef.current,
           cameraRef.current,
         )
-        setState((draft) => {
+        setWorld((draft) => {
           if (colorRef.current === null) {
             return
           }
-          addEntity(draft, {
+          addBeltEntity(draft, {
             position: world,
             color: colorRef.current,
             direction: directionRef.current,
@@ -501,7 +482,7 @@ export function App() {
     )
   }, [signal])
 
-  useTicker(setState)
+  useTicker(setWorld)
 
   return (
     <Fragment>
@@ -514,7 +495,7 @@ export function App() {
         <g
           transform={`translate(${vw / 2 - camera.position.x} ${vh / 2 - camera.position.y})`}
         >
-          {Object.values(state.entities).map((entity) => (
+          {Object.values(world.entities).map((entity) => (
             <Fragment key={entity.id}>
               <RenderEntity
                 entity={entity}
@@ -522,7 +503,7 @@ export function App() {
               />
             </Fragment>
           ))}
-          {Object.values(state.entities).map((entity) => (
+          {Object.values(world.entities).map((entity) => (
             <Fragment key={entity.id}>
               <RenderEntity
                 entity={entity}
@@ -530,7 +511,7 @@ export function App() {
               />
             </Fragment>
           ))}
-          {Object.values(state.entities).map((entity) => (
+          {Object.values(world.entities).map((entity) => (
             <Fragment key={entity.id}>
               <RenderEntity
                 entity={entity}
@@ -606,7 +587,7 @@ function pointerToWorld(
   return new Vec2(x, y)
 }
 
-function tick(draft: State): void {
+function tick(draft: World): void {
   for (const entity of Object.values(draft.entities)) {
     for (const lane of Object.values(entity.lanes)) {
       for (let i = 0; i < lane.length; i++) {
@@ -616,12 +597,14 @@ function tick(draft: State): void {
   }
 
   for (const entity of Object.values(draft.entities)) {
+    invariant(entity.type === EntityType.enum.Belt)
+
     const inputToOutput: number[] = []
 
     for (const laneType of [
-      LaneType.InStraight,
-      LaneType.InLeft,
-      LaneType.InRight,
+      LaneType.enum.InStraight,
+      LaneType.enum.InLeft,
+      LaneType.enum.InRight,
     ]) {
       const lane = entity.lanes[laneType]
 
@@ -638,7 +621,7 @@ function tick(draft: State): void {
       }
     }
 
-    const out = entity.lanes[LaneType.Out]
+    const out = entity.lanes[LaneType.enum.Out]
     if (inputToOutput.length) {
       inputToOutput.sort().reverse()
       for (const tail of inputToOutput) {
@@ -678,11 +661,11 @@ function tick(draft: State): void {
   draft.tick++
 }
 
-function useTicker(setState: Updater<State>) {
+function useTicker(setWorld: Updater<World>) {
   useEffect(() => {
     let handler: number
     function callback() {
-      setState(tick)
+      setWorld(tick)
       handler = self.requestAnimationFrame(callback)
     }
     handler = self.requestAnimationFrame(callback)
@@ -710,16 +693,16 @@ function RenderEntity({
   const transform = useMemo(() => {
     let rotate: number
     switch (entity.direction) {
-      case 'north':
+      case Direction.enum.North:
         rotate = -90
         break
-      case 'south':
+      case Direction.enum.South:
         rotate = 90
         break
-      case 'east':
+      case Direction.enum.East:
         rotate = 0
         break
-      case 'west':
+      case Direction.enum.West:
         rotate = 180
         break
     }
@@ -796,13 +779,13 @@ interface RenderLaneProps {
 function RenderLane({ laneType, lane }: RenderLaneProps) {
   const transform = useMemo(() => {
     switch (laneType) {
-      case LaneType.Out:
+      case LaneType.enum.Out:
         return `translate(${TILE_SIZE / 2} ${TILE_SIZE / 2})`
-      case LaneType.InStraight:
+      case LaneType.enum.InStraight:
         return `translate(0 ${TILE_SIZE / 2})`
-      case LaneType.InLeft:
+      case LaneType.enum.InLeft:
         return `translate(${TILE_SIZE / 2} 0) rotate(90)`
-      case LaneType.InRight:
+      case LaneType.enum.InRight:
         return `translate(${TILE_SIZE / 2} ${TILE_SIZE}) rotate(-90)`
     }
   }, [laneType])
@@ -812,10 +795,10 @@ function RenderLane({ laneType, lane }: RenderLaneProps) {
       {lane.map((position, i) => (
         <Fragment key={i}>
           <rect
-            x={position * TILE_SIZE - TILE_SIZE * 0.1}
-            y={-TILE_SIZE * 0.1}
-            width={TILE_SIZE * 0.2}
-            height={TILE_SIZE * 0.2}
+            x={position * TILE_SIZE - ITEM_SIZE / 2}
+            y={-ITEM_SIZE / 2}
+            width={ITEM_SIZE}
+            height={ITEM_SIZE}
             fill="purple"
           />
         </Fragment>
