@@ -143,7 +143,7 @@ function getOutputLaneType(
   }
 }
 
-function updateOutputIds(draft: State): void {
+function updateOutputs(draft: State): void {
   for (const entity of Object.values(draft.entities)) {
     entity.output = null
 
@@ -206,7 +206,7 @@ function addEntity(
       ...entity,
     }
   }
-  updateOutputIds(draft)
+  updateOutputs(draft)
 }
 
 function initialState(): State {
