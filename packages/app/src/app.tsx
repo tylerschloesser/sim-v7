@@ -413,10 +413,18 @@ export function App() {
         >
           {Object.values(state.entities).map((entity) => (
             <Fragment key={entity.id}>
-              <RenderEntity entity={entity} />
+              <RenderEntity
+                entity={entity}
+                layer={RenderEntityLayer.All}
+              />
             </Fragment>
           ))}
-          {ghost && <RenderEntity entity={ghost} />}
+          {ghost && (
+            <RenderEntity
+              entity={ghost}
+              layer={RenderEntityLayer.All}
+            />
+          )}
         </g>
       </svg>
       {menuOpen && (
@@ -489,10 +497,20 @@ function useTicker(setState: Updater<State>) {
   }, [])
 }
 
+enum RenderEntityLayer {
+  Layer1 = 'layer-1',
+  Layer2 = 'layer-2',
+  All = 'all',
+}
+
 interface RenderEntityProps {
   entity: Omit<Entity, 'id'>
+  layer: RenderEntityLayer
 }
-function RenderEntity({ entity }: RenderEntityProps) {
+function RenderEntity({
+  entity,
+  layer,
+}: RenderEntityProps) {
   const transform = useMemo(() => {
     let rotate: number
     switch (entity.direction) {
@@ -513,17 +531,23 @@ function RenderEntity({ entity }: RenderEntityProps) {
   }, [entity])
   return (
     <g transform={transform}>
-      <rect
-        width={TILE_SIZE}
-        height={TILE_SIZE}
-        fill={entity.color}
-      />
-      <circle
-        cx={TILE_SIZE}
-        cy={TILE_SIZE / 2}
-        r={TILE_SIZE * 0.1}
-        fill="green"
-      />
+      {(layer === RenderEntityLayer.All ||
+        layer === RenderEntityLayer.Layer1) && (
+        <rect
+          width={TILE_SIZE}
+          height={TILE_SIZE}
+          fill={entity.color}
+        />
+      )}
+      {(layer === RenderEntityLayer.All ||
+        layer === RenderEntityLayer.Layer2) && (
+        <circle
+          cx={TILE_SIZE}
+          cy={TILE_SIZE / 2}
+          r={TILE_SIZE * 0.1}
+          fill="green"
+        />
+      )}
     </g>
   )
 }
