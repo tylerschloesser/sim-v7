@@ -6,7 +6,7 @@ export const ZVec2 = z.strictObject({
 })
 export type ZVec2 = z.infer<typeof ZVec2>
 
-export const EntityType = z.enum(['Belt', 'Resource'])
+export const EntityType = z.enum(['Belt'])
 export type EntityType = z.infer<typeof EntityType>
 
 export const Direction = z.enum([
@@ -75,8 +75,21 @@ export type PlaceholderEntity = z.infer<
   typeof PlaceholderEntity
 >
 
+export const TileType = z.enum(['Coal', 'Iron'])
+export type TileType = z.infer<typeof TileType>
+
+export const TileId = z.string()
+export type TileId = z.infer<typeof TileId>
+
+export const Tile = z.strictObject({
+  id: TileId,
+  type: TileType,
+  position: ZVec2,
+})
+
 export const World = z.strictObject({
   tick: z.number().int().nonnegative(),
   entities: z.record(EntityId, Entity),
+  tiles: z.record(TileId, Tile),
 })
 export type World = z.infer<typeof World>

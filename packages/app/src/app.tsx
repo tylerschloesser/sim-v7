@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import * as React from 'react'
 import invariant from 'tiny-invariant'
 import { Updater, useImmer } from 'use-immer'
 import * as z from 'zod'
@@ -17,6 +18,7 @@ import {
   EntityType,
   LaneType,
   PlaceholderEntity,
+  TileType,
   World,
   ZVec2,
 } from './schema'
@@ -153,6 +155,16 @@ function updateOutputs(draft: World): void {
   }
 }
 
+function addTile(
+  draft: World,
+  position: ZVec2,
+  type: TileType,
+): void {
+  const id = `${position.x}.${position.y}`
+  invariant(!draft.tiles[id])
+  draft.tiles[id] = { id, type, position }
+}
+
 function addBeltEntity(
   draft: World,
   entity: Omit<
@@ -189,7 +201,9 @@ function initialWorld(): World {
   const world: World = {
     tick: 0,
     entities: {},
+    tiles: {},
   }
+  addTile(world, new Vec2(-2, -2), TileType.enum.Coal)
   addBeltEntity(world, {
     position: { x: 0, y: 0 },
     direction: Direction.enum.East,
@@ -476,30 +490,8 @@ export function App() {
         <g
           transform={`translate(${vw / 2 - camera.position.x} ${vh / 2 - camera.position.y})`}
         >
-          {Object.values(world.entities).map((entity) => (
-            <Fragment key={entity.id}>
-              <RenderEntity
-                entity={entity}
-                layer={RenderEntityLayer.Layer1}
-              />
-            </Fragment>
-          ))}
-          {Object.values(world.entities).map((entity) => (
-            <Fragment key={entity.id}>
-              <RenderEntity
-                entity={entity}
-                layer={RenderEntityLayer.Layer2}
-              />
-            </Fragment>
-          ))}
-          {Object.values(world.entities).map((entity) => (
-            <Fragment key={entity.id}>
-              <RenderEntity
-                entity={entity}
-                layer={RenderEntityLayer.Layer3}
-              />
-            </Fragment>
-          ))}
+          <RenderTiles tiles={world.tiles} />
+          <RenderEntities entities={world.entities} />
           {placeholder && (
             <RenderPlaceholderEntity entity={placeholder} />
           )}
@@ -514,6 +506,77 @@ export function App() {
     </Fragment>
   )
 }
+
+function getStrokeForTileType(type: TileType) {
+  switch (type) {
+    case TileType.enum.Coal:
+      return 'white'
+    case TileType.enum.Iron:
+      return 'gray'
+  }
+}
+
+interface RenderTilesProps {
+  tiles: World['tiles']
+}
+const RenderTiles = React.memo(function RenderTiles({
+  tiles,
+}: RenderTilesProps) {
+  return (
+    <>
+      {Object.values(tiles).map((tile) => (
+        <Fragment key={tile.id}>
+          <g
+            transform={`translate(${tile.position.x * TILE_SIZE} ${tile.position.y * TILE_SIZE})`}
+          >
+            <rect
+              width={TILE_SIZE}
+              height={TILE_SIZE}
+              stroke={getStrokeForTileType(tile.type)}
+              strokeWidth="4"
+            />
+          </g>
+        </Fragment>
+      ))}
+    </>
+  )
+})
+
+interface RenderEntitiesProps {
+  entities: World['entities']
+}
+const RenderEntities = React.memo(function RenderEntities({
+  entities,
+}: RenderEntitiesProps) {
+  return (
+    <>
+      {Object.values(entities).map((entity) => (
+        <Fragment key={entity.id}>
+          <RenderEntity
+            entity={entity}
+            layer={RenderEntityLayer.Layer1}
+          />
+        </Fragment>
+      ))}
+      {Object.values(entities).map((entity) => (
+        <Fragment key={entity.id}>
+          <RenderEntity
+            entity={entity}
+            layer={RenderEntityLayer.Layer2}
+          />
+        </Fragment>
+      ))}
+      {Object.values(entities).map((entity) => (
+        <Fragment key={entity.id}>
+          <RenderEntity
+            entity={entity}
+            layer={RenderEntityLayer.Layer3}
+          />
+        </Fragment>
+      ))}
+    </>
+  )
+})
 
 interface MenuProps {
   setPlaceholderType(

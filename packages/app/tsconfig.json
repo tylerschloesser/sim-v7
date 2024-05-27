@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ESNext", "DOM"],
     "noUncheckedIndexedAccess": true,
-    "strict": true
+    "strict": true,
+    "noImplicitReturns": true
   }
 }
