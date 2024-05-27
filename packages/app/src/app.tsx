@@ -138,7 +138,7 @@ function addEntity(
     draft.entities[id] = {
       id,
       outputId: null,
-      items: [],
+      items: [0],
       ...entity,
     }
   }
@@ -221,14 +221,17 @@ export function App() {
         cameraRef.current,
       )
       if (!draft) {
-        return {
+        const next: Omit<Entity, 'id'> = {
           position: {
             x: world.x,
             y: world.y,
           },
           color,
           direction,
+          items: [],
+          outputId: null,
         }
+        return next
       } else {
         draft.position.x = world.x
         draft.position.y = world.y
@@ -449,6 +452,14 @@ export function App() {
               />
             </Fragment>
           ))}
+          {Object.values(state.entities).map((entity) => (
+            <Fragment key={entity.id}>
+              <RenderEntity
+                entity={entity}
+                layer={RenderEntityLayer.Layer3}
+              />
+            </Fragment>
+          ))}
           {ghost && (
             <RenderEntity
               entity={ghost}
@@ -530,6 +541,7 @@ function useTicker(setState: Updater<State>) {
 enum RenderEntityLayer {
   Layer1 = 'layer-1',
   Layer2 = 'layer-2',
+  Layer3 = 'layer-3',
   All = 'all',
 }
 
@@ -602,6 +614,22 @@ function RenderEntity({
               />
             </>
           )}
+        </>
+      )}
+      {(layer === RenderEntityLayer.All ||
+        layer === RenderEntityLayer.Layer3) && (
+        <>
+          {entity.items.map((position, i) => (
+            <Fragment key={i}>
+              <rect
+                x={position * TILE_SIZE - TILE_SIZE * 0.1}
+                y={TILE_SIZE / 2 - TILE_SIZE * 0.1}
+                width={TILE_SIZE * 0.2}
+                height={TILE_SIZE * 0.2}
+                fill="purple"
+              />
+            </Fragment>
+          ))}
         </>
       )}
     </g>
