@@ -288,46 +288,62 @@ export function App() {
   }, [vmin])
 
   useEffect(() => {
-    function handleKey(
-      key: string,
-      eventType: 'keydown' | 'keyup',
-    ) {
-      const value = eventType === 'keydown'
-      switch (key) {
+    function handleKeyboardEvent(ev: KeyboardEvent) {
+      invariant(
+        ev.type === 'keydown' || ev.type === 'keyup',
+      )
+
+      const isKeydown = ev.type === 'keydown'
+      const isKeyup = ev.type === 'keyup'
+
+      switch (ev.key.toLowerCase()) {
         case 'w': {
-          input.current.north = value
+          input.current.north = isKeydown
           break
         }
         case 's': {
-          input.current.south = value
+          input.current.south = isKeydown
           break
         }
         case 'a': {
-          input.current.west = value
+          input.current.west = isKeydown
           break
         }
         case 'd': {
-          input.current.east = value
+          input.current.east = isKeydown
           break
         }
         case 'e': {
-          if (eventType === 'keyup') {
+          if (isKeyup) {
             setMenuOpen((value) => !value)
           }
           break
         }
         case 'r': {
-          if (eventType === 'keyup') {
+          if (isKeyup) {
             setDirection((prev) => {
-              switch (prev) {
-                case 'north':
-                  return 'east'
-                case 'east':
-                  return 'south'
-                case 'south':
-                  return 'west'
-                case 'west':
-                  return 'north'
+              if (ev.shiftKey) {
+                switch (prev) {
+                  case 'north':
+                    return 'west'
+                  case 'west':
+                    return 'south'
+                  case 'south':
+                    return 'east'
+                  case 'east':
+                    return 'north'
+                }
+              } else {
+                switch (prev) {
+                  case 'north':
+                    return 'east'
+                  case 'east':
+                    return 'south'
+                  case 'south':
+                    return 'west'
+                  case 'west':
+                    return 'north'
+                }
               }
             })
           }
@@ -339,14 +355,14 @@ export function App() {
     document.addEventListener(
       'keydown',
       (ev) => {
-        handleKey(ev.key, 'keydown')
+        handleKeyboardEvent(ev)
       },
       { signal },
     )
     document.addEventListener(
       'keyup',
       (ev) => {
-        handleKey(ev.key, 'keyup')
+        handleKeyboardEvent(ev)
       },
       { signal },
     )
