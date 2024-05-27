@@ -145,6 +145,8 @@ function getOutputLaneType(
 
 function updateOutputIds(draft: State): void {
   for (const entity of Object.values(draft.entities)) {
+    entity.output = null
+
     let d: Vec2
     switch (entity.direction) {
       case 'north':
@@ -793,8 +795,8 @@ function RenderLane({ laneType, lane }: RenderLaneProps) {
       {lane.map((position, i) => (
         <Fragment key={i}>
           <rect
-            x={position * TILE_SIZE}
-            y={TILE_SIZE / 2}
+            x={position * TILE_SIZE - TILE_SIZE * 0.1}
+            y={-TILE_SIZE * 0.1}
             width={TILE_SIZE * 0.2}
             height={TILE_SIZE * 0.2}
             fill="purple"
