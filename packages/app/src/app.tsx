@@ -415,7 +415,15 @@ export function App() {
             <Fragment key={entity.id}>
               <RenderEntity
                 entity={entity}
-                layer={RenderEntityLayer.All}
+                layer={RenderEntityLayer.Layer1}
+              />
+            </Fragment>
+          ))}
+          {Object.values(state.entities).map((entity) => (
+            <Fragment key={entity.id}>
+              <RenderEntity
+                entity={entity}
+                layer={RenderEntityLayer.Layer2}
               />
             </Fragment>
           ))}
