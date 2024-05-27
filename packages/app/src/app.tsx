@@ -33,6 +33,7 @@ interface Entity {
   color: string
   direction: Direction
   outputId: string | null
+  items: number[]
 }
 
 interface State {
@@ -119,7 +120,7 @@ function updateOutputIds(draft: State): void {
 
 function addEntity(
   draft: State,
-  entity: Omit<Entity, 'id' | 'outputId'>,
+  entity: Omit<Entity, 'id' | 'outputId' | 'items'>,
 ): void {
   const id = `${entity.position.x}.${entity.position.y}`
   const existing = draft.entities[id]
@@ -134,7 +135,12 @@ function addEntity(
       existing.direction = entity.direction
     }
   } else {
-    draft.entities[id] = { id, outputId: null, ...entity }
+    draft.entities[id] = {
+      id,
+      outputId: null,
+      items: [],
+      ...entity,
+    }
   }
   updateOutputIds(draft)
 }
