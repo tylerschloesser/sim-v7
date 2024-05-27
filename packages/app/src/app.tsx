@@ -32,6 +32,7 @@ interface Entity {
   position: ZVec2
   color: string
   direction: Direction
+  outputId: string | null
 }
 
 interface State {
@@ -71,9 +72,54 @@ function useViewportRef() {
   return viewportRef
 }
 
+function isOpposite(a: Direction, b: Direction) {
+  switch (a) {
+    case 'north':
+      return b === 'south'
+    case 'south':
+      return b === 'north'
+    case 'east':
+      return b === 'west'
+    case 'west':
+      return b === 'east'
+  }
+}
+
+function updateOutputIds(draft: State): void {
+  for (const entity of Object.values(draft.entities)) {
+    let d: Vec2
+    switch (entity.direction) {
+      case 'north':
+        d = new Vec2(0, -1)
+        break
+      case 'south':
+        d = new Vec2(0, +1)
+        break
+      case 'east':
+        d = new Vec2(+1, 0)
+        break
+      case 'west':
+        d = new Vec2(-1, 0)
+        break
+    }
+    const neighborPosition = new Vec2(
+      entity.position.x,
+      entity.position.y,
+    ).add(d)
+    const neighborId = `${neighborPosition.x}.${neighborPosition.y}`
+    const neighbor = draft.entities[neighborId]
+    if (
+      neighbor &&
+      !isOpposite(entity.direction, neighbor.direction)
+    ) {
+      entity.outputId = neighborId
+    }
+  }
+}
+
 function addEntity(
   draft: State,
-  entity: Omit<Entity, 'id'>,
+  entity: Omit<Entity, 'id' | 'outputId'>,
 ): void {
   const id = `${entity.position.x}.${entity.position.y}`
   const existing = draft.entities[id]
@@ -88,8 +134,9 @@ function addEntity(
       existing.direction = entity.direction
     }
   } else {
-    draft.entities[id] = { id, ...entity }
+    draft.entities[id] = { id, outputId: null, ...entity }
   }
+  updateOutputIds(draft)
 }
 
 function initialState(): State {
