@@ -40,8 +40,13 @@ interface Entity {
   position: ZVec2
   color: string
   direction: Direction
-  outputId: string | null
-  items: number[]
+  output: {
+    id: string
+    laneType:
+      | LaneType.InStraight
+      | LaneType.InLeft
+      | LaneType.InRight
+  } | null
   lanes: Record<LaneType, number[]>
 }
 
@@ -82,16 +87,59 @@ function useViewportRef() {
   return viewportRef
 }
 
-function isOpposite(a: Direction, b: Direction) {
-  switch (a) {
+function getOutputLaneType(
+  entity: Entity,
+  neighbor: Entity,
+):
+  | LaneType.InStraight
+  | LaneType.InLeft
+  | LaneType.InRight
+  | null {
+  switch (entity.direction) {
     case 'north':
-      return b === 'south'
+      switch (neighbor.direction) {
+        case 'north':
+          return LaneType.InStraight
+        case 'south':
+          return null
+        case 'east':
+          return LaneType.InRight
+        case 'west':
+          return LaneType.InLeft
+      }
     case 'south':
-      return b === 'north'
+      switch (neighbor.direction) {
+        case 'north':
+          return null
+        case 'south':
+          return LaneType.InStraight
+        case 'east':
+          return LaneType.InLeft
+        case 'west':
+          return LaneType.InRight
+      }
     case 'east':
-      return b === 'west'
+      switch (neighbor.direction) {
+        case 'north':
+          return LaneType.InLeft
+        case 'south':
+          return LaneType.InRight
+        case 'east':
+          return LaneType.InStraight
+        case 'west':
+          return null
+      }
     case 'west':
-      return b === 'east'
+      switch (neighbor.direction) {
+        case 'north':
+          return LaneType.InRight
+        case 'south':
+          return LaneType.InLeft
+        case 'east':
+          return null
+        case 'west':
+          return LaneType.InStraight
+      }
   }
 }
 
@@ -118,21 +166,18 @@ function updateOutputIds(draft: State): void {
     ).add(d)
     const neighborId = `${neighborPosition.x}.${neighborPosition.y}`
     const neighbor = draft.entities[neighborId]
-    if (
-      neighbor &&
-      !isOpposite(entity.direction, neighbor.direction)
-    ) {
-      entity.outputId = neighborId
+    if (neighbor) {
+      const laneType = getOutputLaneType(entity, neighbor)
+      if (laneType) {
+        entity.output = { id: neighborId, laneType }
+      }
     }
   }
 }
 
 function addEntity(
   draft: State,
-  entity: Omit<
-    Entity,
-    'id' | 'outputId' | 'items' | 'lanes'
-  >,
+  entity: Omit<Entity, 'id' | 'output' | 'lanes'>,
 ): void {
   const id = `${entity.position.x}.${entity.position.y}`
   const existing = draft.entities[id]
@@ -149,10 +194,9 @@ function addEntity(
   } else {
     draft.entities[id] = {
       id,
-      outputId: null,
-      items: [0],
+      output: null, // will be set later
       lanes: {
-        [LaneType.Out]: [],
+        [LaneType.Out]: [0],
         [LaneType.InStraight]: [],
         [LaneType.InLeft]: [],
         [LaneType.InRight]: [],
@@ -246,14 +290,13 @@ export function App() {
           },
           color,
           direction,
-          items: [],
           lanes: {
             [LaneType.Out]: [],
             [LaneType.InStraight]: [],
             [LaneType.InLeft]: [],
             [LaneType.InRight]: [],
           },
-          outputId: null,
+          output: null,
         }
         return next
       } else {
@@ -546,28 +589,69 @@ function pointerToWorld(
 
 function tick(draft: State): void {
   for (const entity of Object.values(draft.entities)) {
-    for (let i = 0; i < entity.items.length; i++) {
-      entity.items[i] += BELT_SPEED * (1 / 60)
+    for (const lane of Object.values(entity.lanes)) {
+      for (let i = 0; i < lane.length; i++) {
+        lane[i] += BELT_SPEED * (1 / 60)
+      }
     }
   }
 
   for (const entity of Object.values(draft.entities)) {
-    for (let i = 0; i < entity.items.length; i++) {
-      if (entity.items.at(-i - 1)! >= 1) {
-        const tail = entity.items.pop()! - 1
-        invariant(tail >= 0)
+    const inputToOutput: number[] = []
 
-        if (entity.outputId) {
-          const output = draft.entities[entity.outputId]
-          invariant(output)
-          const head = output.items.at(0)
+    for (const laneType of [
+      LaneType.InStraight,
+      LaneType.InLeft,
+      LaneType.InRight,
+    ]) {
+      const lane = entity.lanes[laneType]
+
+      for (let i = 0; i < lane.length; i++) {
+        if (lane.at(-i - 1)! >= 0.5) {
+          const tail = lane.pop()! - 0.5
+          invariant(tail >= 0)
+          invariant(tail < 0.5) // shouldn't happen unless things are moving fast
+
+          inputToOutput.push(tail)
+        } else {
+          break
+        }
+      }
+    }
+
+    const out = entity.lanes[LaneType.Out]
+    if (inputToOutput.length) {
+      inputToOutput.sort().reverse()
+      for (const tail of inputToOutput) {
+        const head = out.at(0)
+        if (head) {
+          invariant(head >= tail)
+        }
+        out.unshift(tail)
+      }
+    }
+
+    let outputLane: number[] | null = null
+    if (entity.output) {
+      const neighbor = draft.entities[entity.output.id]
+      invariant(neighbor)
+      outputLane = neighbor.lanes[entity.output.laneType]
+      invariant(outputLane)
+    }
+
+    for (let i = 0; i < out.length; i++) {
+      if (out.at(-i - 1)! >= 0.5) {
+        const tail = out.pop()! - 0.5
+        invariant(tail >= 0)
+        invariant(tail < 0.5)
+
+        if (outputLane) {
+          const head = outputLane.at(0)
           if (head) {
             invariant(head >= tail)
           }
-          output.items.unshift(tail)
+          outputLane.unshift(tail)
         }
-      } else {
-        break
       }
     }
   }
@@ -641,7 +725,7 @@ function RenderEntity({
             r={TILE_SIZE * 0.1}
             fill="green"
           />
-          {entity.outputId && (
+          {entity.output && (
             <>
               <circle
                 cx={TILE_SIZE / 2}
@@ -670,19 +754,53 @@ function RenderEntity({
       {(layer === RenderEntityLayer.All ||
         layer === RenderEntityLayer.Layer3) && (
         <>
-          {entity.items.map((position, i) => (
-            <Fragment key={i}>
-              <rect
-                x={position * TILE_SIZE - TILE_SIZE * 0.1}
-                y={TILE_SIZE / 2 - TILE_SIZE * 0.1}
-                width={TILE_SIZE * 0.2}
-                height={TILE_SIZE * 0.2}
-                fill="purple"
-              />
-            </Fragment>
-          ))}
+          {Object.entries(entity.lanes).map(
+            ([laneType, lane]) => (
+              <Fragment key={laneType}>
+                <RenderLane
+                  laneType={laneType as LaneType}
+                  lane={lane}
+                />
+              </Fragment>
+            ),
+          )}
         </>
       )}
+    </g>
+  )
+}
+
+interface RenderLaneProps {
+  laneType: LaneType
+  lane: number[]
+}
+function RenderLane({ laneType, lane }: RenderLaneProps) {
+  const transform = useMemo(() => {
+    switch (laneType) {
+      case LaneType.Out:
+        return `translate(${TILE_SIZE / 2} ${TILE_SIZE / 2})`
+      case LaneType.InStraight:
+        return `translate(0 ${TILE_SIZE / 2})`
+      case LaneType.InLeft:
+        return `translate(${TILE_SIZE / 2} 0) rotate(90)`
+      case LaneType.InRight:
+        return `translate(${TILE_SIZE / 2} ${TILE_SIZE}) rotate(-90)`
+    }
+  }, [laneType])
+
+  return (
+    <g transform={transform}>
+      {lane.map((position, i) => (
+        <Fragment key={i}>
+          <rect
+            x={position * TILE_SIZE}
+            y={TILE_SIZE / 2}
+            width={TILE_SIZE * 0.2}
+            height={TILE_SIZE * 0.2}
+            fill="purple"
+          />
+        </Fragment>
+      ))}
     </g>
   )
 }
