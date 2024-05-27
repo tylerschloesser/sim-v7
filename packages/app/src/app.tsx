@@ -28,6 +28,13 @@ type ZVec2 = z.infer<typeof ZVec2>
 
 type Direction = 'north' | 'south' | 'east' | 'west'
 
+enum LaneType {
+  Out = 'out',
+  InStraight = 'in-straight',
+  InLeft = 'in-left',
+  InRight = 'in-right',
+}
+
 interface Entity {
   id: string
   position: ZVec2
@@ -35,6 +42,7 @@ interface Entity {
   direction: Direction
   outputId: string | null
   items: number[]
+  lanes: Record<LaneType, number[]>
 }
 
 interface State {
@@ -121,7 +129,10 @@ function updateOutputIds(draft: State): void {
 
 function addEntity(
   draft: State,
-  entity: Omit<Entity, 'id' | 'outputId' | 'items'>,
+  entity: Omit<
+    Entity,
+    'id' | 'outputId' | 'items' | 'lanes'
+  >,
 ): void {
   const id = `${entity.position.x}.${entity.position.y}`
   const existing = draft.entities[id]
@@ -140,6 +151,12 @@ function addEntity(
       id,
       outputId: null,
       items: [0],
+      lanes: {
+        [LaneType.Out]: [],
+        [LaneType.InStraight]: [],
+        [LaneType.InLeft]: [],
+        [LaneType.InRight]: [],
+      },
       ...entity,
     }
   }
@@ -230,6 +247,12 @@ export function App() {
           color,
           direction,
           items: [],
+          lanes: {
+            [LaneType.Out]: [],
+            [LaneType.InStraight]: [],
+            [LaneType.InLeft]: [],
+            [LaneType.InRight]: [],
+          },
           outputId: null,
         }
         return next
