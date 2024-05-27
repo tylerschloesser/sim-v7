@@ -223,12 +223,12 @@ function initialState(): State {
 }
 
 function useColor(): [
-  string,
-  (color: string) => void,
-  React.MutableRefObject<string>,
+  string | null,
+  (color: string | null) => void,
+  React.MutableRefObject<string | null>,
 ] {
-  const [color, setColor] = useState<string>('red')
-  const colorRef = useRef<string>(color)
+  const [color, setColor] = useState<string | null>('red')
+  const colorRef = useRef<string | null>(color)
   useEffect(() => {
     colorRef.current = color
   }, [color])
@@ -276,7 +276,7 @@ export function App() {
 
   useEffect(() => {
     setGhost((draft) => {
-      if (!pointer) {
+      if (!pointer || !color) {
         return null
       }
       const world = pointerToWorld(
@@ -397,6 +397,12 @@ export function App() {
           }
           break
         }
+        case 'q': {
+          if (isKeyup) {
+            setColor(null)
+          }
+          break
+        }
         case 'r': {
           if (isKeyup) {
             setDirection((prev) => {
@@ -481,6 +487,9 @@ export function App() {
           cameraRef.current,
         )
         setState((draft) => {
+          if (colorRef.current === null) {
+            return
+          }
           addEntity(draft, {
             position: world,
             color: colorRef.current,
@@ -548,12 +557,20 @@ export function App() {
 }
 
 interface MenuProps {
-  setColor(color: string): void
+  setColor(color: string | null): void
   setMenuOpen(menuOpen: boolean): void
 }
 function Menu({ setColor, setMenuOpen }: MenuProps) {
   return (
     <div id="menu">
+      <button
+        onClick={() => {
+          setColor(null)
+          setMenuOpen(false)
+        }}
+      >
+        Clear
+      </button>
       <button
         onClick={() => {
           setColor('red')
