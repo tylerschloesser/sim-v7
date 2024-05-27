@@ -6,7 +6,7 @@ export const ZVec2 = z.strictObject({
 })
 export type ZVec2 = z.infer<typeof ZVec2>
 
-export const EntityType = z.enum(['Belt'])
+export const EntityType = z.enum(['Belt', 'Resource'])
 export type EntityType = z.infer<typeof EntityType>
 
 export const Direction = z.enum([
@@ -42,7 +42,6 @@ export const BeltEntity = z.strictObject({
   type: z.literal(EntityType.enum.Belt),
   id: EntityId,
   position: ZVec2,
-  color: z.string(),
   direction: Direction,
   output: BeltOutput.nullable(),
   lanes: z.strictObject({
@@ -58,6 +57,23 @@ export const Entity = z.discriminatedUnion('type', [
   BeltEntity,
 ])
 export type Entity = z.infer<typeof Entity>
+
+export const BeltPlaceholderEntity = BeltEntity.pick({
+  type: true,
+  position: true,
+  direction: true,
+})
+export type BeltPlaceholderEntity = z.infer<
+  typeof BeltPlaceholderEntity
+>
+
+export const PlaceholderEntity = z.discriminatedUnion(
+  'type',
+  [BeltPlaceholderEntity],
+)
+export type PlaceholderEntity = z.infer<
+  typeof PlaceholderEntity
+>
 
 export const World = z.strictObject({
   tick: z.number().int().nonnegative(),

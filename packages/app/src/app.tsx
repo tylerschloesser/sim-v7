@@ -16,6 +16,7 @@ import {
   Entity,
   EntityType,
   LaneType,
+  PlaceholderEntity,
   World,
   ZVec2,
 } from './schema'
@@ -162,13 +163,9 @@ function addBeltEntity(
   const id = `${entity.position.x}.${entity.position.y}`
   const existing = draft.entities[id]
   if (existing) {
-    if (
-      existing.color === entity.color &&
-      existing.direction === entity.direction
-    ) {
+    if (existing.direction === entity.direction) {
       delete draft.entities[id]
     } else {
-      existing.color = entity.color
       existing.direction = entity.direction
     }
   } else {
@@ -195,23 +192,9 @@ function initialWorld(): World {
   }
   addBeltEntity(world, {
     position: { x: 0, y: 0 },
-    color: 'red',
     direction: Direction.enum.East,
   })
   return world
-}
-
-function useColor(): [
-  string | null,
-  (color: string | null) => void,
-  React.MutableRefObject<string | null>,
-] {
-  const [color, setColor] = useState<string | null>('red')
-  const colorRef = useRef<string | null>(color)
-  useEffect(() => {
-    colorRef.current = color
-  }, [color])
-  return [color, setColor, colorRef]
 }
 
 export function useDirection(): [
@@ -229,12 +212,27 @@ export function useDirection(): [
   return [direction, setDirection, directionRef]
 }
 
+function usePlaceholder(): [
+  PlaceholderEntity | null,
+  (placeholder: PlaceholderEntity | null) => void,
+  React.MutableRefObject<PlaceholderEntity | null>,
+] {
+  const [placeholder, setPlaceholder] =
+    useState<PlaceholderEntity | null>(null)
+  const placeholderRef = useRef<PlaceholderEntity | null>(
+    placeholder,
+  )
+  useEffect(() => {
+    placeholderRef.current = placeholder
+  }, [placeholder])
+  return [placeholder, setPlaceholder, placeholderRef]
+}
+
 export function App() {
   const { vw, vh } = useContext(AppContext)
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
   const viewBox = useMemo(() => `0 0 ${vw} ${vh}`, [vw, vh])
 
-  const [color, setColor, colorRef] = useColor()
   const svg = useRef<SVGSVGElement>(null)
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -244,52 +242,40 @@ export function App() {
   const [world, setWorld] = useImmer<World>(initialWorld)
 
   const [camera, setCamera, cameraRef] = useCamera()
-  const [direction, setDirection, directionRef] =
-    useDirection()
-
-  const [ghost, setGhost] = useImmer<Omit<
-    Entity,
-    'id'
-  > | null>(null)
+  const [direction, setDirection] = useDirection()
 
   const [pointer, setPointer] = useImmer<Vec2 | null>(null)
 
+  const [placeholder, setPlaceholder, placeholderRef] =
+    usePlaceholder()
+
+  const [placeholderType, setPlaceholderType] =
+    useState<EntityType | null>(EntityType.enum.Belt)
+
   useEffect(() => {
-    setGhost((draft) => {
-      if (!pointer || !color) {
-        return null
-      }
-      const world = pointerToWorld(
-        pointer,
-        viewportRef.current,
-        cameraRef.current,
-      )
-      if (!draft) {
-        const next: Omit<Entity, 'id'> = {
+    if (!pointer || placeholderType === null) {
+      setPlaceholder(null)
+      return
+    }
+    const world = pointerToWorld(
+      pointer,
+      viewportRef.current,
+      cameraRef.current,
+    )
+    switch (placeholderType) {
+      case EntityType.enum.Belt: {
+        setPlaceholder({
           type: EntityType.enum.Belt,
-          position: {
-            x: world.x,
-            y: world.y,
-          },
-          color,
           direction,
-          lanes: {
-            [LaneType.enum.Out]: [],
-            [LaneType.enum.InStraight]: [],
-            [LaneType.enum.InLeft]: [],
-            [LaneType.enum.InRight]: [],
-          },
-          output: null,
-        }
-        return next
-      } else {
-        draft.position.x = world.x
-        draft.position.y = world.y
-        draft.color = color
-        draft.direction = direction
+          position: world,
+        })
+        break
       }
-    })
-  }, [color, pointer, direction])
+      default: {
+        invariant(false)
+      }
+    }
+  }, [pointer, direction, placeholderType])
 
   const input = useRef<{
     north: boolean
@@ -380,7 +366,7 @@ export function App() {
         }
         case 'q': {
           if (isKeyup) {
-            setColor(null)
+            setPlaceholderType(null)
           }
           break
         }
@@ -461,21 +447,16 @@ export function App() {
 
     svg.current.addEventListener(
       'pointerup',
-      (ev) => {
-        const world = pointerToWorld(
-          new Vec2(ev.clientX, ev.clientY),
-          viewportRef.current,
-          cameraRef.current,
-        )
+      () => {
         setWorld((draft) => {
-          if (colorRef.current === null) {
+          if (placeholderRef.current === null) {
             return
           }
-          addBeltEntity(draft, {
-            position: world,
-            color: colorRef.current,
-            direction: directionRef.current,
-          })
+          invariant(
+            placeholderRef.current.type ===
+              EntityType.enum.Belt,
+          )
+          addBeltEntity(draft, placeholderRef.current)
         })
       },
       { signal },
@@ -519,17 +500,14 @@ export function App() {
               />
             </Fragment>
           ))}
-          {ghost && (
-            <RenderEntity
-              entity={ghost}
-              layer={RenderEntityLayer.All}
-            />
+          {placeholder && (
+            <RenderPlaceholderEntity entity={placeholder} />
           )}
         </g>
       </svg>
       {menuOpen && (
         <Menu
-          setColor={setColor}
+          setPlaceholderType={setPlaceholderType}
           setMenuOpen={setMenuOpen}
         />
       )}
@@ -538,36 +516,39 @@ export function App() {
 }
 
 interface MenuProps {
-  setColor(color: string | null): void
+  setPlaceholderType(
+    placeholderType: EntityType | null,
+  ): void
   setMenuOpen(menuOpen: boolean): void
 }
-function Menu({ setColor, setMenuOpen }: MenuProps) {
+function Menu({
+  setPlaceholderType,
+  setMenuOpen,
+}: MenuProps) {
   return (
     <div id="menu">
       <button
         onClick={() => {
-          setColor(null)
+          setPlaceholderType(null)
           setMenuOpen(false)
         }}
       >
         Clear
       </button>
-      <button
-        onClick={() => {
-          setColor('red')
-          setMenuOpen(false)
-        }}
-      >
-        Red
-      </button>
-      <button
-        onClick={() => {
-          setColor('blue')
-          setMenuOpen(false)
-        }}
-      >
-        Blue
-      </button>
+      {Object.values(EntityType.Values).map(
+        (placeholderType) => (
+          <Fragment key={placeholderType}>
+            <button
+              onClick={() => {
+                setPlaceholderType(placeholderType)
+                setMenuOpen(false)
+              }}
+            >
+              {placeholderType}
+            </button>
+          </Fragment>
+        ),
+      )}
     </div>
   )
 }
@@ -675,22 +656,11 @@ function useTicker(setWorld: Updater<World>) {
   }, [])
 }
 
-enum RenderEntityLayer {
-  Layer1 = 'layer-1',
-  Layer2 = 'layer-2',
-  Layer3 = 'layer-3',
-  All = 'all',
-}
-
-interface RenderEntityProps {
-  entity: Omit<Entity, 'id'>
-  layer: RenderEntityLayer
-}
-function RenderEntity({
-  entity,
-  layer,
-}: RenderEntityProps) {
-  const transform = useMemo(() => {
+function useEntityTransform(entity: {
+  position: ZVec2
+  direction: Direction
+}) {
+  return useMemo(() => {
     let rotate: number
     switch (entity.direction) {
       case Direction.enum.North:
@@ -708,6 +678,47 @@ function RenderEntity({
     }
     return `translate(${entity.position.x * TILE_SIZE} ${entity.position.y * TILE_SIZE}) rotate(${rotate}, ${TILE_SIZE / 2}, ${TILE_SIZE / 2})`
   }, [entity])
+}
+
+interface RenderPlaceholderEntityProps {
+  entity: PlaceholderEntity
+}
+function RenderPlaceholderEntity({
+  entity,
+}: RenderPlaceholderEntityProps) {
+  const transform = useEntityTransform(entity)
+  return (
+    <g transform={transform}>
+      <rect
+        width={TILE_SIZE}
+        height={TILE_SIZE}
+        fill="red"
+      />
+      <circle
+        cx={TILE_SIZE}
+        cy={TILE_SIZE / 2}
+        r={TILE_SIZE * 0.1}
+        fill="green"
+      />
+    </g>
+  )
+}
+
+enum RenderEntityLayer {
+  Layer1 = 'layer-1',
+  Layer2 = 'layer-2',
+  Layer3 = 'layer-3',
+  All = 'all',
+}
+interface RenderEntityProps {
+  entity: Omit<Entity, 'id'>
+  layer: RenderEntityLayer
+}
+function RenderEntity({
+  entity,
+  layer,
+}: RenderEntityProps) {
+  const transform = useEntityTransform(entity)
   return (
     <g transform={transform}>
       {(layer === RenderEntityLayer.All ||
@@ -715,7 +726,7 @@ function RenderEntity({
         <rect
           width={TILE_SIZE}
           height={TILE_SIZE}
-          fill={entity.color}
+          fill="red"
         />
       )}
       {(layer === RenderEntityLayer.All ||
