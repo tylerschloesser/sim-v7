@@ -417,12 +417,12 @@ export function App() {
     const controller = new AbortController()
     const { signal } = controller
 
-    document.addEventListener('keydown', keyboardListener, {
-      signal,
-    })
-    document.addEventListener('keyup', keyboardListener, {
-      signal,
-    })
+    // prettier-ignore
+    {
+      document.addEventListener('keydown', keyboardListener, { signal })
+      document.addEventListener('keyup', keyboardListener, { signal })
+    }
+
     return () => {
       controller.abort()
     }
@@ -481,31 +481,16 @@ export function App() {
     invariant(svg.current)
     const controller = new AbortController()
     const { signal } = controller
-    svg.current.addEventListener(
-      'pointerenter',
-      pointerListener,
-      { signal },
-    )
-    svg.current.addEventListener(
-      'pointermove',
-      pointerListener,
-      { signal },
-    )
-    svg.current.addEventListener(
-      'pointerleave',
-      pointerListener,
-      { signal },
-    )
-    svg.current.addEventListener(
-      'pointerdown',
-      pointerListener,
-      { signal },
-    )
-    svg.current.addEventListener(
-      'pointerup',
-      pointerListener,
-      { signal },
-    )
+
+    // prettier-ignore
+    {
+      svg.current.addEventListener('pointerenter', pointerListener, { signal })
+      svg.current.addEventListener('pointermove', pointerListener, { signal })
+      svg.current.addEventListener('pointerleave', pointerListener, { signal })
+      svg.current.addEventListener('pointerdown', pointerListener, { signal })
+      svg.current.addEventListener('pointerup', pointerListener, { signal })
+    }
+
     return () => {
       controller.abort()
     }
