@@ -311,17 +311,6 @@ export function App() {
     west: false,
   })
 
-  const controller = useMemo(
-    () => new AbortController(),
-    [],
-  )
-  const { signal } = controller
-  useEffect(() => {
-    return () => {
-      controller.abort()
-    }
-  }, [])
-
   useEffect(() => {
     let handle: number
     function callback() {
@@ -425,21 +414,23 @@ export function App() {
       }
     }
 
+    const controller = new AbortController()
+    const { signal } = controller
+
     document.addEventListener(
       'keydown',
-      (ev) => {
-        handleKeyboardEvent(ev)
-      },
+      handleKeyboardEvent,
       { signal },
     )
     document.addEventListener(
       'keyup',
-      (ev) => {
-        handleKeyboardEvent(ev)
-      },
+      handleKeyboardEvent,
       { signal },
     )
-  }, [signal])
+    return () => {
+      controller.abort()
+    }
+  }, [])
 
   const pointerListener = React.useCallback(
     (ev: PointerEvent) => {
