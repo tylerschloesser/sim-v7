@@ -242,6 +242,11 @@ function usePlaceholder(): [
   return [placeholder, setPlaceholder, placeholderRef]
 }
 
+interface Pointer {
+  world: ZVec2
+  down: boolean
+}
+
 export function App() {
   const { vw, vh } = useContext(AppContext)
   const vmin = useMemo(() => Math.min(vw, vh), [vw, vh])
@@ -258,7 +263,9 @@ export function App() {
   const [camera, setCamera, cameraRef] = useCamera()
   const [direction, setDirection] = useDirection()
 
-  const [pointer, setPointer] = useImmer<Vec2 | null>(null)
+  const [pointer, setPointer] = useImmer<Pointer | null>(
+    null,
+  )
 
   const [placeholder, setPlaceholder, placeholderRef] =
     usePlaceholder()
@@ -271,17 +278,12 @@ export function App() {
       setPlaceholder(null)
       return
     }
-    const world = pointerToWorld(
-      pointer,
-      viewportRef.current,
-      cameraRef.current,
-    )
     switch (placeholderType) {
       case EntityType.enum.Belt: {
         setPlaceholder({
           type: EntityType.enum.Belt,
           direction,
-          position: world,
+          position: pointer.world,
         })
         break
       }
@@ -290,6 +292,12 @@ export function App() {
       }
     }
   }, [pointer, direction, placeholderType])
+
+  useEffect(() => {
+    if (placeholderType !== null) {
+      return
+    }
+  }, [pointer, placeholderType])
 
   const input = useRef<{
     north: boolean
@@ -433,49 +441,88 @@ export function App() {
     )
   }, [signal])
 
+  const pointerListener = React.useCallback(
+    (ev: PointerEvent) => {
+      switch (ev.type) {
+        case 'pointerenter':
+        case 'pointermove':
+        case 'pointerdown':
+        case 'pointerup': {
+          const world = screenToWorld(
+            new Vec2(ev.clientX, ev.clientY),
+            viewportRef.current,
+            cameraRef.current,
+          ).toZVec2()
+          const down = !!ev.buttons
+          setPointer((draft) => {
+            if (!draft) {
+              return { world, down }
+            }
+            draft.world.x = world.x
+            draft.world.y = world.y
+            draft.down = down
+            return
+          })
+          break
+        }
+        case 'pointerleave': {
+          setPointer(null)
+          break
+        }
+      }
+
+      switch (ev.type) {
+        case 'pointerup': {
+          setWorld((draft) => {
+            if (placeholderRef.current === null) {
+              return
+            }
+            invariant(
+              placeholderRef.current.type ===
+                EntityType.enum.Belt,
+            )
+            addBeltEntity(draft, placeholderRef.current)
+          })
+          break
+        }
+      }
+    },
+    [],
+  )
+
   useEffect(() => {
     invariant(svg.current)
+    const controller = new AbortController()
+    const { signal } = controller
     svg.current.addEventListener(
       'pointerenter',
-      (ev) => {
-        setPointer(new Vec2(ev.clientX, ev.clientY))
-      },
+      pointerListener,
       { signal },
     )
-
     svg.current.addEventListener(
       'pointermove',
-      (ev) => {
-        setPointer(new Vec2(ev.clientX, ev.clientY))
-      },
+      pointerListener,
       { signal },
     )
-
     svg.current.addEventListener(
       'pointerleave',
-      () => {
-        setPointer(null)
-      },
+      pointerListener,
       { signal },
     )
-
+    svg.current.addEventListener(
+      'pointerdown',
+      pointerListener,
+      { signal },
+    )
     svg.current.addEventListener(
       'pointerup',
-      () => {
-        setWorld((draft) => {
-          if (placeholderRef.current === null) {
-            return
-          }
-          invariant(
-            placeholderRef.current.type ===
-              EntityType.enum.Belt,
-          )
-          addBeltEntity(draft, placeholderRef.current)
-        })
-      },
+      pointerListener,
       { signal },
     )
-  }, [signal])
+    return () => {
+      controller.abort()
+    }
+  }, [pointerListener])
 
   useTicker(setWorld)
 
@@ -616,17 +663,17 @@ function Menu({
   )
 }
 
-function pointerToWorld(
-  pointer: Vec2,
+function screenToWorld(
+  screen: Vec2,
   viewport: Viewport,
   camera: Camera,
 ): Vec2 {
   const { vw, vh } = viewport
   const x = Math.floor(
-    (pointer.x - vw / 2 + camera.position.x) / TILE_SIZE,
+    (screen.x - vw / 2 + camera.position.x) / TILE_SIZE,
   )
   const y = Math.floor(
-    (pointer.y - vh / 2 + camera.position.y) / TILE_SIZE,
+    (screen.y - vh / 2 + camera.position.y) / TILE_SIZE,
   )
   return new Vec2(x, y)
 }

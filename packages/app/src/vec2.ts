@@ -1,4 +1,5 @@
 import invariant from 'tiny-invariant'
+import { ZVec2 } from './schema'
 
 export class Vec2 {
   static ZERO = new Vec2(0, 0)
@@ -36,5 +37,9 @@ export class Vec2 {
 
   div(s: number): Vec2 {
     return new Vec2(this.x / s, this.y / s)
+  }
+
+  toZVec2(): ZVec2 {
+    return { x: this.x, y: this.y }
   }
 }
