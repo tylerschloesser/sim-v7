@@ -344,7 +344,7 @@ export function App() {
   }, [vmin])
 
   useEffect(() => {
-    function handleKeyboardEvent(ev: KeyboardEvent) {
+    function keyboardListener(ev: KeyboardEvent) {
       invariant(
         ev.type === 'keydown' || ev.type === 'keyup',
       )
@@ -417,16 +417,12 @@ export function App() {
     const controller = new AbortController()
     const { signal } = controller
 
-    document.addEventListener(
-      'keydown',
-      handleKeyboardEvent,
-      { signal },
-    )
-    document.addEventListener(
-      'keyup',
-      handleKeyboardEvent,
-      { signal },
-    )
+    document.addEventListener('keydown', keyboardListener, {
+      signal,
+    })
+    document.addEventListener('keyup', keyboardListener, {
+      signal,
+    })
     return () => {
       controller.abort()
     }
